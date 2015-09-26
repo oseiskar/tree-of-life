@@ -1,0 +1,6 @@
+*.json
+*.gz
+*.tre
+*~
+*.o
+tree
