@@ -1,23 +1,37 @@
 "use strict";
 
-var d3root = d3.select('#tree')
-    .attr('viewBox', "0 0 1000 800");
-
 var relX = d3.scale.linear()
     .domain([0, 1])
     .range([0, 1000]);
 
 var relY = d3.scale.linear()
     .domain([0, 1])
-    .range([0, 700]);
+    .range([0, 640]);
+    
+var d3root = d3.select('#tree')
+    .attr('viewBox', "0 0 1000 800")
+    .append('g')
+    .attr('transform', 'translate(0,20)');
     
 var levelData = [];
 var nodeId = 0;
 
+var svgPath = {
+    p: function (x,y) { return x + ',' + y + ' '; },
+    moveTo: function (x,y) { return 'M' + svgPath.p(x,y); },
+    lineTo: function (x,y) { return 'L' + svgPath.p(x,y); },
+    curveTo: function (ctrl1x, ctrl1y, ctrl2x, ctrl2y, x, y) {
+        return 'C' +
+            svgPath.p(ctrl1x, ctrl1y) +
+            svgPath.p(ctrl2x, ctrl2y) +
+            svgPath.p(x,y);
+    },
+    close: 'Z'
+};
+
 function updateLevels() {
     
-    function stashPositionObj(obj, index, coord, begin, width) {
-        var p = obj.pos;
+    function stashPosition(p, index, coord, begin, width) {
         p[coord + '0'] = begin;
         p[coord + 'sz'] = width;
         p['c' + coord] = begin + width*0.5;
@@ -51,12 +65,11 @@ function updateLevels() {
         var newNodes = nodes.enter()
             .append('g');
         
+        if (depth > 0) newNodes.append('path');
         newNodes.append('rect');
-        newNodes.append('text')
-            .attr('text-anchor', 'middle')
-            .text(function(d) {return d.n});
         
-        if (depth > 0) newNodes.append('line');
+        newNodes.append('text')
+            .text(function(d) {return d.n});
             
         (function (){
             
@@ -67,7 +80,7 @@ function updateLevels() {
                 return cur;
             });
             
-            var rawLevelWeight = levelWeight;
+            var rawLevelWeight = levelWeight * 1.0;
             
             var weightFalloff = 0.5;
             var freeSpace = 0;
@@ -79,9 +92,6 @@ function updateLevels() {
             var levelX = lastLevelX;
             var levelWidth = relX(Math.pow(2, -(levelData.length-depth)));
             
-            lastLevelWeight = levelWeight;
-            lastLevelX = levelX + levelWidth;
-            
             var minWidth = levelWeight * 0.01 * 0.5;
             var paddingWeight = levelWeight * 0.01;
             
@@ -90,8 +100,37 @@ function updateLevels() {
             if (freeSpace > 0 && data.length > 1)
                 paddingWeight += freeSpace / (data.length-1);
             
-            nodes.select('rect')
+            lastLevelWeight = rawLevelWeight;
+            lastLevelX = levelX + levelWidth;
+            
+            nodes.each(function (d,i) {
+                
+                stashPosition(d.pos, i, 'x',
+                    levelX,
+                    levelWidth*0.1);
+                    
+                stashPosition(d.pos, i, 'y',
+                    relY((weightCumsum[i] + paddingWeight*i) / levelWeight),
+                    relY((d.s+minWidth) / levelWeight));
+                
+                if (depth > 0) {
+                    var yRel = d.childCumsum / d.parent.childSum;
+                    stashPosition(d.parentLinkPos, i, 'y',
+                        yRel * d.parent.pos.ysz + d.parent.pos.y0,
+                        1.0 * d.s / d.parent.childSum * d.parent.pos.ysz);
+                }
+            });
+            
+            nodes.select('text')
+                .transition()
+                .attr('x', function(d) {return d.pos.cx;})
+                .attr('y', function(d) {return d.pos.cy;});
+            
+            if (depth == 0) return;
+            
+            nodes.select('path')
                 .on('click', function (d) {
+                    
                     if (d.c) {
                         if (d.expanded)
                             removeChildren(d, depth+1);
@@ -100,56 +139,32 @@ function updateLevels() {
                         updateLevels();
                     }
                 })
-                .attr('style', function (d){
-                    if (d.c) {
-                        return 'fill:gray;fill-opacity:0.4';
-                    }
-                    else {
-                        return 'fill:gray';
-                    }
+                .attr('style', function(d) {
+                    return 'fill: gray; fill-opacity: 0.3';
                 })
                 .transition()
-                .attr('x', function (d,i) {
-                    stashPositionObj(d, i, 'x',
-                        levelX,
-                        levelWidth*0.9);
-                    return d.pos.x0;
-                })
-                .attr('y', function (d,i) {
-                    stashPositionObj(d, i, 'y',
-                        relY((weightCumsum[i] + paddingWeight*i) / levelWeight),
-                        relY((d.s+minWidth) / levelWeight));
-                    return d.pos.y0;
-                })
-                .attr('height', function (d) {
-                    return d.pos.ysz; 
-                })
-                .attr('width', function (d, i) {
-                    return d.pos.xsz;
+                .attr('d', function (d) {
+                    var w = d.pos.cx - d.parent.pos.cx;
+                    var ctrl1 = {
+                        x: d.parent.pos.cx + w*0.5,
+                        y: d.parentLinkPos.cy
+                    };
+                    var ctrl2 = {
+                        x: d.pos.cx - w*0.5,
+                        y: d.pos.cy
+                    };
+                    return svgPath.moveTo(d.parent.pos.cx, d.parentLinkPos.y0) +
+                        svgPath.curveTo(
+                            d.parent.pos.cx + w*0.5, d.parentLinkPos.y0,
+                            d.pos.cx - w*0.5, d.pos.y0,
+                            d.pos.cx, d.pos.y0) +
+                        svgPath.lineTo(d.pos.cx, d.pos.y1) +
+                        svgPath.curveTo(
+                            d.pos.cx - w*0.5, d.pos.y1,
+                            d.parent.pos.cx + w*0.5, d.parentLinkPos.y1,
+                            d.parent.pos.cx, d.parentLinkPos.y1) +
+                        svgPath.close;
                 });
-            
-            nodes.select('text')
-                .transition()
-                .attr('x', function(d) {return d.pos.cx;})
-                .attr('y', function(d) {return d.pos.cy;});
-            
-            if (depth > 0) {
-                nodes.select('line')
-                    .attr('style', 'stroke-width: 1;stroke:gray')
-                    .transition()
-                    .attr('x1', function (d) {
-                        return d.parent.pos.cx;
-                    })
-                    .attr('y1', function (d) {
-                        return d.parent.pos.cy;
-                    })
-                    .attr('x2', function (d) {
-                        return d.pos.cx;
-                    })
-                    .attr('y2', function (d) {
-                        return d.pos.cy;
-                    });
-            }
             
         
         })();
@@ -175,15 +190,21 @@ function expandChildren(parent, data, level) {
             insertPos++;
     }
     
+    var childCumsum = 0;
     data.forEach(function (d, i) {
         if (!d.s) d.s = 1;
         d.expanded = false;
         d.pos = {};
+        d.parentLinkPos = {};
         d.parent = parent;
         d.nodeId = nodeId;
+        d.childCumsum = childCumsum;
+        childCumsum += d.s; 
         nodeId++;
         curLevel.splice(insertPos+i, 0, d);
     });
+    
+    if (parent) parent.childSum = childCumsum;
 }
 
 function removeChildren(node, depth) {
@@ -203,5 +224,6 @@ d3.json('out.json', function (error, data) {
     d3.select('#loader').attr('style', 'display: none');
     
     expandChildren(null, [data], 0);
+    expandChildren(data, data.c, 1);
     updateLevels();
 });
