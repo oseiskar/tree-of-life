@@ -162,8 +162,8 @@ int main() {
     std::cerr << tree.total_nodes << " nodes" << std::endl;
     std::cerr << global_max_depth << " max depth" << std::endl;
     
-    write_tree_json(tree, std::cout, true, 10);
-    write_tree_structure_json(tree, std::cout);
+    write_tree_json(tree, std::cout, true, 100000);
+    //write_tree_structure_json(tree, std::cout);
     //write_tree_names_json(tree, std::cout);
     
     std::cerr << pruned.size() << " trees pruned" << std::endl;

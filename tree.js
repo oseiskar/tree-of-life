@@ -2,16 +2,16 @@
 
 var relX = d3.scale.linear()
     .domain([0, 1])
-    .range([0, 1000]);
+    .range([0, 2000]);
 
-var relY = d3.scale.linear()
-    .domain([0, 1])
-    .range([0, 640]);
+var yPadding = 20;
+var canvasHeight = 700 - yPadding * 2;
     
 var d3root = d3.select('#tree')
-    .attr('viewBox', "0 0 1000 800")
+    .attr('viewBox', "0 0 2000 700")
     .append('g')
-    .attr('transform', 'translate(0,20)');
+    .attr('transform', 'translate(0,' + (yPadding+canvasHeight/2) + ')' )
+    .append('g');
     
 var levelData = [];
 var nodeId = 0;
@@ -28,6 +28,8 @@ var svgPath = {
     },
     close: 'Z'
 };
+    
+var rootWeight, zoom = 1.0;
 
 function updateLevels() {
     
@@ -48,15 +50,10 @@ function updateLevels() {
     
     levels.exit().remove();
     
-    var lastLevelWeight = null;
-    var lastLevelX = 0;
+    var minY = -1.0;
+    var maxY = 1.0;
     
     levels.each(function(data, depth) {
-        
-        if (depth+1 < levelData.length/5) {
-            d3.select(this).selectAll('g').remove();
-            return;
-        };
         
         var nodes = d3.select(this)
             .selectAll('g')
@@ -69,49 +66,57 @@ function updateLevels() {
         newNodes.append('rect');
         
         newNodes.append('text')
-            .text(function(d) {return d.n});
+            .text(function(d) {return d.n})
+            
+        var lastLevel = depth == levelData.length - 1;
             
         (function (){
+            
+            function toggleExpand(d) {
+                
+                if (d.c) {
+                    if (d.expanded)
+                        removeChildren(d, depth+1);
+                    else
+                        expandChildren(d, d.c, depth+1);
+                    updateLevels();
+                }
+            };
+            
+            var centerY = 0.0;
             
             var levelWeight = 0;
             var weightCumsum = data.map(function (d) {
                 var cur = levelWeight;
                 levelWeight += d.s;
+                if (depth > 0) centerY += d.parent.pos.cy * d.s;
                 return cur;
             });
             
-            var rawLevelWeight = levelWeight * 1.0;
+            centerY *= 1.0 / levelWeight;
             
-            var weightFalloff = 0.5;
-            var freeSpace = 0;
-            if (lastLevelWeight) {
-                freeSpace += (lastLevelWeight - levelWeight)*weightFalloff;
-                levelWeight += freeSpace;
-            }
+            var padding = levelWeight * 0.01;
+            if (lastLevel)
+                padding = 20.0 / canvasHeight * rootWeight;
+                
+            levelWeight += padding * (data.length-1);
             
-            var levelX = lastLevelX;
-            var levelWidth = relX(Math.pow(2, -(levelData.length-depth)));
-            
-            var minWidth = levelWeight * 0.01 * 0.5;
-            var paddingWeight = levelWeight * 0.01;
-            
-            levelWeight += paddingWeight * (data.length-1);
-            freeSpace -= paddingWeight * (data.length-1);
-            if (freeSpace > 0 && data.length > 1)
-                paddingWeight += freeSpace / (data.length-1);
-            
-            lastLevelWeight = rawLevelWeight;
-            lastLevelX = levelX + levelWidth;
+            var levelX = relX(depth / levelData.length);
             
             nodes.each(function (d,i) {
                 
-                stashPosition(d.pos, i, 'x',
-                    levelX,
-                    levelWidth*0.1);
+                stashPosition(d.pos, i, 'x', levelX, 0);
                     
-                stashPosition(d.pos, i, 'y',
-                    relY((weightCumsum[i] + paddingWeight*i) / levelWeight),
-                    relY((d.s+minWidth) / levelWeight));
+                var y = (weightCumsum[i] + padding*i) / levelWeight;
+                y = (y - 0.5) * levelWeight / rootWeight;
+                y = y * canvasHeight + centerY;
+                
+                minY = Math.min(minY, y);
+                
+                var w = d.s / rootWeight * canvasHeight;
+                d.lineOnly = w < 1.0 || d.s == 1;
+                
+                stashPosition(d.pos, i, 'y', y, w);
                 
                 if (depth > 0) {
                     var yRel = d.childCumsum / d.parent.childSum;
@@ -119,28 +124,34 @@ function updateLevels() {
                         yRel * d.parent.pos.ysz + d.parent.pos.y0,
                         1.0 * d.s / d.parent.childSum * d.parent.pos.ysz);
                 }
+                
+                maxY = Math.max(maxY, y+w);
             });
             
-            nodes.select('text')
+            var texts = nodes.select('text')
+                .on('click', toggleExpand)
+                .attr('style', function(d) {
+                    if (lastLevel || d.expanded) return '';
+                    return 'display: none';
+                })
                 .transition()
                 .attr('x', function(d) {return d.pos.cx;})
-                .attr('y', function(d) {return d.pos.cy;});
+                .attr('y', function(d) {return d.pos.cy;})
+                .attr('transform', function(d) {
+                    if (lastLevel) return '';
+                    var angle = 25+levelData.length;
+                    return 'rotate('+angle+','+d.pos.cx+','+d.pos.cy+')';
+                });
             
             if (depth == 0) return;
             
             nodes.select('path')
-                .on('click', function (d) {
-                    
-                    if (d.c) {
-                        if (d.expanded)
-                            removeChildren(d, depth+1);
-                        else
-                            expandChildren(d, d.c, depth+1);
-                        updateLevels();
-                    }
-                })
+                .on('click', toggleExpand)
                 .attr('style', function(d) {
-                    return 'fill: gray; fill-opacity: 0.3';
+                    if (d.lineOnly)
+                        return 'fill: none; stroke: gray; stroke-opacity: 0.3; stroke-width: 1.0';
+                    else
+                        return 'fill: gray; fill-opacity: 0.3';
                 })
                 .transition()
                 .attr('d', function (d) {
@@ -153,11 +164,16 @@ function updateLevels() {
                         x: d.pos.cx - w*0.5,
                         y: d.pos.cy
                     };
-                    return svgPath.moveTo(d.parent.pos.cx, d.parentLinkPos.y0) +
+                    
+                    var p = svgPath.moveTo(d.parent.pos.cx, d.parentLinkPos.y0) +
                         svgPath.curveTo(
                             d.parent.pos.cx + w*0.5, d.parentLinkPos.y0,
                             d.pos.cx - w*0.5, d.pos.y0,
-                            d.pos.cx, d.pos.y0) +
+                            d.pos.cx, d.pos.y0);
+                    
+                    if (d.lineOnly) return p;
+                    
+                    return p +
                         svgPath.lineTo(d.pos.cx, d.pos.y1) +
                         svgPath.curveTo(
                             d.pos.cx - w*0.5, d.pos.y1,
@@ -171,7 +187,10 @@ function updateLevels() {
         
         nodes.exit().remove();
     });
-        
+    
+    zoom = (canvasHeight*0.5) / Math.max(-minY, maxY);
+    //d3root.transition()
+    //    .attr('transform', 'scale(1.0, ' + zoom + ')');
 }
 
 function expandChildren(parent, data, level) {
@@ -211,7 +230,7 @@ function removeChildren(node, depth) {
     node.expanded = false;
     levelData[depth] = levelData[depth].filter(function (d) {
         var isChild = d.parent == node;
-        if (d.expanded) removeChildren(d, depth+1);
+        if (isChild && d.expanded) removeChildren(d, depth+1);
         return !isChild;
     });
     if (levelData[depth].length == 0) levelData.pop();
@@ -223,6 +242,7 @@ d3.json('out.json', function (error, data) {
     window.tol = data;
     d3.select('#loader').attr('style', 'display: none');
     
+    rootWeight = 1.0 * data.s;
     expandChildren(null, [data], 0);
     expandChildren(data, data.c, 1);
     updateLevels();
