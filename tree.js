@@ -180,6 +180,8 @@ function updateLevels() {
                 .attr('style', function(d) {
                     if (d.lineOnly)
                         return 'fill: none; stroke: gray; stroke-opacity: 0.3; stroke-width: 1.0';
+                    if (!d.expanded)
+                        return 'fill: url(#grad1)';
                     else
                         return 'fill: gray; fill-opacity: 0.3';
                 })
