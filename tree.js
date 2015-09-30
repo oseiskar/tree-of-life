@@ -71,7 +71,7 @@ function updateLevels() {
         
         newNodes.append('text')
             .text(function(d) {
-                if (d.n) return d.n.replace(/_/g, ' ');
+                if (d.n) return d.n;
                 return '...';
             })
             
