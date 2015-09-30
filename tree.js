@@ -319,7 +319,7 @@ function removeChildren(node, depth) {
     updateLevels();
 }
 
-d3.json('out.json', function (error, data) {
+d3.json('data/out.json', function (error, data) {
     if (error) alert(error);
     window.tol = data;
     d3.select('#loader').attr('style', 'display: none');

@@ -1,6 +1,6 @@
-*.json
-*.gz
-*.tre
+data/*.json
+data/*.gz
+data/*.tre
 *~
 *.o
 tree
