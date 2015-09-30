@@ -69,22 +69,6 @@ Tree read_tree_newick(std::istream &is, int depth = 0) {
     return tree;
 }
 
-void write_tree_newick(const Tree& tree, std::ostream &os, bool root = true) {
-    
-    if (tree.leaves.size() > 0) {
-        os << '(';
-        list<Tree>::const_iterator itr = tree.leaves.begin();
-        while(itr != tree.leaves.end()) {
-            write_tree_newick(*itr, os, false);
-            itr++;
-            if (itr != tree.leaves.end()) os << ',';
-        }
-        os << ')';
-    }
-    os << tree.name;
-    if (root) os << ';' << std::endl;
-}
-
 void write_json_str(std::ostream &os, const string &str) {
     os << "\"";
     for (unsigned int i = 0; i < str.size(); ++i) {
@@ -129,32 +113,6 @@ void write_tree_json(const Tree& tree, std::ostream &os, bool root = true, int m
     if (root) os << std::endl;
 }
 
-void write_tree_structure_json(const Tree& tree, std::ostream &os, bool root = true) {
-    
-    os << "[";
-    if (tree.leaves.size() > 0) {
-        list<Tree>::const_iterator itr = tree.leaves.begin();
-        while(itr != tree.leaves.end()) {
-            write_tree_structure_json(*itr, os, false);
-            itr++;
-            if (itr != tree.leaves.end()) os << ',';
-        }
-    }
-    os << ']';
-    if (root) os << std::endl;
-}
-
-void write_tree_names_json(const Tree& tree, std::ostream &os, bool root = true) {
-    
-    const string &name = tree.name_prefix;
-    os << name << ',';
-    for (list<Tree>::const_iterator itr = tree.leaves.begin();
-         itr != tree.leaves.end(); ++itr) {
-        write_tree_names_json(*itr, os, false);
-    }
-    if (root) os << std::endl;
-}
-
 int main() {
     Tree tree = read_tree_newick(std::cin);
     std::cerr << tree.name << std::endl;
@@ -163,10 +121,10 @@ int main() {
     std::cerr << global_max_depth << " max depth" << std::endl;
     
     write_tree_json(tree, std::cout, true, 100000);
-    //write_tree_structure_json(tree, std::cout);
-    //write_tree_names_json(tree, std::cout);
     
     std::cerr << pruned.size() << " trees pruned" << std::endl;
-    std::cerr << *std::max_element(pruned.begin(), pruned.end()) << " max pruned tree size" << std::endl;
-    std::cerr << std::accumulate(pruned.begin(), pruned.end(), 0) << " nodes pruned" << std::endl;
+    if (pruned.size() > 0) {
+        std::cerr << *std::max_element(pruned.begin(), pruned.end()) << " max pruned tree size" << std::endl;
+        std::cerr << std::accumulate(pruned.begin(), pruned.end(), 0) << " nodes pruned" << std::endl;
+    }
 }
