@@ -3,13 +3,19 @@
 #include <string>
 #include <stdexcept>
 #include <list>
+#include <map>
 #include <vector>
-#include <algorithm>
-#include <numeric>
+#include <fstream>
 
 using std::list;
+using std::vector;
 using std::string;
 using std::runtime_error;
+
+// this is what I hate about C++
+template <class T> string to_string(T x) {
+    std::ostringstream oss; oss << x; return oss.str();
+}
 
 void replace_all_in_place(string &str, char target, char replacement) {
     for(size_t i=0; i<str.size(); ++i)
@@ -24,17 +30,9 @@ struct Tree {
     static int max_depth;
  
     Tree() :
-        total_leaves(1), 
+        total_leaves(0), 
         total_nodes(1)
     {}
-    
-    void add_child(Tree child) {
-        if (children.size() == 0) total_leaves = 0;
-        
-        children.push_back(child);
-        total_leaves += child.total_leaves;
-        total_nodes += child.total_nodes;
-    }
  
     void set_name(string name_) {
         name = name_;
@@ -60,30 +58,35 @@ string read_newick_string(std::istream &is) {
     throw runtime_error("unexpected eof");
 }
 
-Tree read_newick_tree(std::istream &is, int depth = 0) {
+void read_newick_tree(Tree &tree, std::istream &is, int depth = 0) {
     
     if (depth == 0) Tree::max_depth = 0;
-    
-    Tree tree;
     
     if (Tree::max_depth < depth) Tree::max_depth = depth;
     
     if (is.peek() == '(') {
         is.ignore();
         while (true) {
-            tree.add_child(read_newick_tree(is, depth+1));
+            tree.children.push_back(Tree());
+            Tree &child = tree.children.back();
+            
+            read_newick_tree(child, is, depth+1);
+            
+            tree.total_leaves += child.total_leaves;
+            tree.total_nodes += child.total_nodes;
             
             char c = is.get();
             if (c == ',') continue;
             if (c == ')') break;
             throw runtime_error("unexpected token "+string(1, c));
         }
+    } else {
+        tree.total_leaves = 1;
     }
     
     tree.set_name(read_newick_string(is));
     
     if (depth == 0 && is.peek() == ';') is.ignore();
-    return tree;
 }
 
 void write_json_str(std::ostream &os, const string &str) {
@@ -124,12 +127,107 @@ void write_tree_json(const Tree& tree, std::ostream &os, bool root = true) {
     if (root) os << std::endl;
 }
 
-int main() {
-    Tree tree = read_newick_tree(std::cin);
-    std::cerr << tree.name_prefix << std::endl;
-    std::cerr << tree.total_leaves << " leaf nodes" << std::endl;
-    std::cerr << tree.total_nodes << " nodes" << std::endl;
-    std::cerr << Tree::max_depth << " max depth" << std::endl;
+int write_tree_json_file(const Tree& tree, string fn) {
+    std::ofstream file(fn.c_str());
+    write_tree_json(tree, file);
+    return file.tellp();
+}
+
+
+void decompose_tree(Tree &root, list<Tree> &out,
+                    const int max_subtree_size,
+                    int overlap_depth = 0) {
     
-    write_tree_json(tree, std::cout);
+    const int MAX_OVERLAP_DEPTH = 3;
+    const int MIN_SUBTREE_SIZE = 10000;
+    
+    if (overlap_depth == 0) {
+        if (root.total_nodes <= max_subtree_size &&
+            root.total_nodes >= MIN_SUBTREE_SIZE) {
+        
+            overlap_depth = 1;
+            out.push_back(root); // deep copy
+        }
+    }
+    else {
+        if (overlap_depth >= MAX_OVERLAP_DEPTH) {
+            root.children.clear();
+            return;
+        }
+        overlap_depth++;
+    }
+    
+    for(list<Tree>::iterator itr = root.children.begin();
+            itr != root.children.end();
+            itr++) 
+        decompose_tree(*itr, out, max_subtree_size, overlap_depth);
+}
+
+void iterative_decomposition(Tree &root, list<Tree> &out) {
+    
+    const int DECOMPOSITION_ITR = 3;
+    
+    const int MAX_SUBTREE_SIZES[] = {
+        500000,
+        200000,
+        100000
+    };
+    
+    vector<Tree*> roots;
+    roots.push_back(&root);
+    
+    for (int itr=0; itr < DECOMPOSITION_ITR; ++itr) {
+        const int max_subtree_size = MAX_SUBTREE_SIZES[itr];
+        
+        std::cerr << "decomposition iteration "  << itr+1 << ", "
+                  << roots.size() << " root(s)" << std::endl;
+        
+        size_t old_n_out = out.size();
+        
+        for (size_t i = 0; i < roots.size(); ++i) {
+            Tree &cur_root = *roots[i];
+            if (cur_root.total_nodes > max_subtree_size)
+                decompose_tree(cur_root, out, max_subtree_size);
+        }
+        
+        roots.clear();
+        
+        // avoid the temptation of changing out to a vector -> nasal demons
+        list<Tree>::reverse_iterator root_itr = out.rbegin();
+        for (size_t i = old_n_out; i < out.size(); ++i) {
+            Tree &new_root = *(root_itr++);
+            roots.push_back(&new_root);
+        }
+    }
+}
+
+int main() {
+    
+    using std::cerr;
+    using std::endl;
+    
+    Tree tree;
+    read_newick_tree(tree, std::cin);
+    
+    cerr << tree.name_prefix << endl;
+    cerr << tree.total_leaves << " leaf nodes" << endl;
+    cerr << tree.total_nodes << " nodes" << endl;
+    cerr << Tree::max_depth << " max depth" << endl;
+    
+    list<Tree> subtrees;
+    cerr << "decomposing..." << endl;
+    iterative_decomposition(tree, subtrees);
+    cerr << "got " << subtrees.size() << " subtrees" << endl;
+    
+    list<Tree>::const_iterator itr = subtrees.begin();
+    for (size_t i = 0; i < subtrees.size(); ++i) {
+        cerr << "writing subtree " << i;
+        size_t bytes = write_tree_json_file(*itr, "data/subtree-"+to_string(i)+".json");
+        cerr << "\t" << (bytes / 1024) << " kB" << endl;
+        itr++;
+    }
+    
+    cerr << "root "
+         << write_tree_json_file(tree, "data/root.json") / 1024
+         << " kB" << endl;
 }

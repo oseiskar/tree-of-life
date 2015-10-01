@@ -6,8 +6,10 @@ CC=g++
 tree: tree.cpp
 	$(CC) tree.cpp $(CFLAGS) -o tree
 	
-jsons: tree data/draftversion3.tre
-	./tree < data/draftversion3.tre > data/out.json
+jsons: clean tree data/draftversion3.tre
+	./tree < data/draftversion3.tre
 	
 clean:
-	rm tree
+	rm -f tree
+	rm -f data/subtree*.json
+	rm -f data/root.json
