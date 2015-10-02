@@ -303,6 +303,7 @@ function expandChildren(parent, level) {
         d.childCumsum = childCumsum;
         childCumsum += d.s; 
         nodeId++;
+        if (d.subtree_index) attachSubtree(d);
         curLevel.splice(insertPos+i, 0, d);
     });
     parent.childSum = childCumsum;
@@ -319,8 +320,32 @@ function removeChildren(node, depth) {
     updateLevels();
 }
 
-d3.json('data/out.json', function (error, data) {
-    if (error) alert(error);
+function attachSubtree(node) {
+    
+    if (node.subtree_requested) return;
+    node.subtree_requested = true;
+    
+    var file = 'data/subtree-' + node.subtree_index + '.json';
+    console.log('fetching '+file +' for '+node.n);
+    
+    d3.json(file, function (error, data) {
+        if (error) {
+            alert(error.statusText);
+            return;
+        }
+        console.log(error);
+        node.c = data.c;
+        node.subtree_loaded = true;
+        console.log(file +' loaded');
+        updateLevels();
+    })
+}
+
+d3.json('data/root.json', function (error, data) {
+    if (error) {
+        alert(error.statusText);
+        return;
+    }
     window.tol = data;
     d3.select('#loader').attr('style', 'display: none');
     

@@ -26,12 +26,14 @@ struct Tree {
     list<Tree> children;
     string name, name_prefix, name_id;
     int total_leaves, total_nodes;
+    int subtree_index;
     
     static int max_depth;
  
     Tree() :
         total_leaves(0), 
-        total_nodes(1)
+        total_nodes(1),
+        subtree_index(0)
     {}
  
     void set_name(string name_) {
@@ -114,6 +116,10 @@ void write_tree_json(const Tree& tree, std::ostream &os, bool root = true) {
         
         os << "\"s\":" << tree.total_leaves;
         
+        if (tree.subtree_index > 0) {
+            os << ",\"subtree_index\":" << tree.subtree_index;
+        }
+        
         os << ",\"c\":[";
         list<Tree>::const_iterator itr = tree.children.begin();
         while(itr != tree.children.end()) {
@@ -147,6 +153,7 @@ void decompose_tree(Tree &root, list<Tree> &out,
         
             overlap_depth = 1;
             out.push_back(root); // deep copy
+            root.subtree_index = out.size();
         }
     }
     else {
@@ -220,9 +227,9 @@ int main() {
     cerr << "got " << subtrees.size() << " subtrees" << endl;
     
     list<Tree>::const_iterator itr = subtrees.begin();
-    for (size_t i = 0; i < subtrees.size(); ++i) {
-        cerr << "writing subtree " << i;
-        size_t bytes = write_tree_json_file(*itr, "data/subtree-"+to_string(i)+".json");
+    for (size_t idx = 1; idx <= subtrees.size(); ++idx) {
+        cerr << "writing subtree " << idx;
+        size_t bytes = write_tree_json_file(*itr, "data/subtree-"+to_string(idx)+".json");
         cerr << "\t" << (bytes / 1024) << " kB" << endl;
         itr++;
     }
