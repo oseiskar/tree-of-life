@@ -2,6 +2,7 @@
 <meta charset="UTF-8">
 <html>
 <head>
+    <title>Tree of Life - d3.js</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js"></script>
     <style>
         body {
@@ -11,6 +12,7 @@
         svg {
             width: 100%;
             display: block;
+            padding-top: 40px;
         }
         
         #loader {
@@ -18,9 +20,61 @@
             text-align: center;
             margin-top: 20%;
         }
+        
+        .bar {
+            padding-left: 8%;
+            padding-right: 8%;
+            width: 84%;
+        }
+        
+        .navbar {
+            position: absolute;
+            padding-top: 40px;
+            //padding-bottom: 1%;
+            //background-color: #eeeeee;
+            //border-bottom: 1px solid #cccccc;
+            font-size: 25pt;
+        }
+        
+        .foot {
+            text-align: center;
+            font-size: 10pt;
+        }
+        
+        .foot a {
+            color: gray;
+        }
+        
+        .title {
+            display: inline-block;
+            min-width: 60%;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .info {
+            display: inline-block;
+            min-width: 38%;
+            text-align: right;
+            padding: 0;
+            margin: 0;
+        }
+        
+        a {
+            text-decoration: none;
+            color: black;
+        }
     </style>
 </head>
 <body>
+<div class="bar navbar">
+    <span class="title">
+        Tree of Life
+    </span>
+    <span class="info">
+        <a href="https://github.com/oseiskar/tree-of-life/blob/master/README.md">?</a>
+    </span>
+</div>
 <div id="loader">loading...</div>
 <svg id="tree" preserveAspectRatio="xMinYMin meet">
   <defs>
@@ -30,6 +84,9 @@
     </linearGradient>
   </defs>
 </svg>
+<div class="bar foot">
+    <a href="https://github.com/oseiskar/tree-of-life/blob/master/COPYRIGHT.md">Data: &copy; Open Tree of Life, 2015</a>
+</div>
 </body>
 <script src="tree.js"></script>
 </html>
