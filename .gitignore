@@ -1,4 +1,3 @@
-data/*.json
 data/*.gz
 data/*.tre
 *~
