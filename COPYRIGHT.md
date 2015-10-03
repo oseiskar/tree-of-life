@@ -1,6 +1,5 @@
 
-The data files `*.json`
-========================
+__The data files `*.json`__
 
 It is stated in http://www.opentreeoflife.org/ that the original Tree of Life
 data in http://files.opentreeoflife.org/trees/draftversion3.tre.gz (fetched
@@ -13,7 +12,9 @@ The included JSON data have been derived from the decompressed version of
 this file using the attached program (source code) tree.cpp.
 
 
-Other material
-=========================
+__Other material (the code)__
+
 
     (c) Otto Seiskari, 2015
+
+.
