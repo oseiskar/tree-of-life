@@ -1,3 +1,8 @@
+/*
+ * An ad-hoc program for reading the tree of life in Newick format
+ * and outputting it as overlapping JSON subtrees. 
+ */
+
 #include <iostream>
 #include <sstream>
 #include <string>
