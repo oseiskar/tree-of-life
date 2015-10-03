@@ -13,6 +13,7 @@
             width: 100%;
             display: block;
             padding-top: 40px;
+            min-width: 800px;
         }
         
         #loader {
@@ -36,25 +37,29 @@
             font-size: 25pt;
         }
         
+        .hidden {
+            display: none;
+        }
+        
         .foot {
             text-align: center;
             font-size: 10pt;
         }
         
         .foot a {
-            color: gray;
+            color: #aaaaaa;
         }
         
         .title {
             display: inline-block;
-            min-width: 60%;
+            width: 60%;
             padding: 0;
             margin: 0;
         }
         
         .info {
             display: inline-block;
-            min-width: 38%;
+            width: 36%;
             text-align: right;
             padding: 0;
             margin: 0;
@@ -67,7 +72,7 @@
     </style>
 </head>
 <body>
-<div class="bar navbar">
+<div class="bar navbar hidden">
     <span class="title">
         Tree of Life
     </span>
@@ -84,8 +89,8 @@
     </linearGradient>
   </defs>
 </svg>
-<div class="bar foot">
-    <a href="https://github.com/oseiskar/tree-of-life/blob/master/COPYRIGHT.md">Data: &copy; Open Tree of Life, 2015</a>
+<div class="bar foot hidden">
+    <a href="https://github.com/oseiskar/tree-of-life/blob/master/COPYRIGHT.md">Data: &copy; Open Tree of Life, 2015 &mdash; Visualization by oseiskar</a>
 </div>
 </body>
 <script src="tree.js"></script>
