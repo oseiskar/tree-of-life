@@ -354,7 +354,8 @@ d3.json('data/root.json', function (error, data) {
         return;
     }
     window.tol = data;
-    d3.select('#loader').attr('style', 'display: none');
+    d3.select('#loader').classed('hidden', true);
+    d3.selectAll('.bar').classed('hidden', false);
     
     rootWeight = 1.0 * data.s;
     expandChildren({c: [data], level: -1});
