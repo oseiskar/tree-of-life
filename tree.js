@@ -83,9 +83,9 @@ function updateLevels() {
                 
                 if (d.c) {
                     if (d.expanded)
-                        removeChildren(d, depth+1);
+                        removeChildren(d);
                     else
-                        expandChildren(d, depth+1);
+                        expandChildren(d);
                     updateLevels();
                 }
             };
@@ -275,9 +275,14 @@ function collapseLargeLevels(data) {
     return [n1,n2];
 }
 
-function expandChildren(parent, level) {
+function expandChildren(parent) {
+    
     parent.expanded = true;
     parent.c = collapseLargeLevels(parent.c);
+    
+    var level = parent.level + 1;
+    
+    if (parent.subtree_index) fetchSubtree(parent);
     
     while (levelData.length <= level) {
         levelData.push([]);
@@ -301,26 +306,26 @@ function expandChildren(parent, level) {
         d.parent = parent;
         d.nodeId = nodeId;
         d.childCumsum = childCumsum;
+        d.level = level;
         childCumsum += d.s; 
         nodeId++;
-        if (d.subtree_index) attachSubtree(d);
         curLevel.splice(insertPos+i, 0, d);
     });
     parent.childSum = childCumsum;
 }
 
-function removeChildren(node, depth) {
+function removeChildren(node) {
     node.expanded = false;
-    levelData[depth] = levelData[depth].filter(function (d) {
+    var level = node.level + 1;
+    levelData[level] = levelData[level].filter(function (d) {
         var isChild = d.parent == node;
-        if (isChild && d.expanded) removeChildren(d, depth+1);
+        if (isChild && d.expanded) removeChildren(d);
         return !isChild;
     });
-    if (levelData[depth].length == 0) levelData.pop();
-    updateLevels();
+    if (levelData[level].length == 0) levelData.pop();
 }
 
-function attachSubtree(node) {
+function fetchSubtree(node) {
     
     if (node.subtree_requested) return;
     node.subtree_requested = true;
@@ -333,10 +338,12 @@ function attachSubtree(node) {
             alert(error.statusText);
             return;
         }
-        console.log(error);
         node.c = data.c;
         node.subtree_loaded = true;
-        console.log(file +' loaded');
+        var wasExpanded = node.expanded;
+        removeChildren(node);
+        if (wasExpanded) expandChildren(node);
+        //console.log(file +' loaded');
         updateLevels();
     })
 }
@@ -350,7 +357,7 @@ d3.json('data/root.json', function (error, data) {
     d3.select('#loader').attr('style', 'display: none');
     
     rootWeight = 1.0 * data.s;
-    expandChildren({c: [data]}, 0);
-    expandChildren(data, 1);
+    expandChildren({c: [data], level: -1});
+    expandChildren(data);
     updateLevels();
 });
