@@ -61,19 +61,19 @@ function updateLevels() {
         
         var nodes = d3.select(this)
             .selectAll('g')
-            .data(data, function (d) {return d.nodeId});
+            .data(data, function (d) { return d.nodeId; });
         
         var newNodes = nodes.enter()
             .append('g');
         
-        if (depth > 0) newNodes.append('path');
+        if (depth > 0) { newNodes.append('path'); }
         newNodes.append('rect');
         
         newNodes.append('text')
             .text(function(d) {
                 if (d.n) return d.n;
                 return '...';
-            })
+            });
             
         var lastLevel = depth == levelData.length - 1;
             
@@ -82,13 +82,14 @@ function updateLevels() {
             function toggleExpand(d) {
                 
                 if (d.c) {
-                    if (d.expanded)
+                    if (d.expanded) {
                         removeChildren(d);
-                    else
+                    } else {
                         expandChildren(d);
+                    }
                     updateLevels();
                 }
-            };
+            }
             
             var centerY = 0.0;
             
@@ -103,9 +104,9 @@ function updateLevels() {
             centerY *= 1.0 / levelWeight * 0.5;
             
             var padding = levelWeight * 0.02;
-            if (lastLevel)
+            if (lastLevel) {
                 padding = 15.0 / rootHeight * rootWeight;
-            else if (data.length > 20) {
+            } else if (data.length > 20) {
                 padding = Math.min(2.0 / rootHeight * rootWeight);
             }
                 
@@ -138,7 +139,7 @@ function updateLevels() {
             
             var anyNamed = false;
             
-            var texts = nodes.select('text')
+            nodes.select('text')
                 .on('click', toggleExpand)
                 .attr('style', function(d) {
                     if (lastLevel ||
@@ -160,42 +161,36 @@ function updateLevels() {
                     return '';
                 })
                 .transition()
-                .attr('x', function(d) {return d.pos.cx + textMarginLeft;})
-                .attr('y', function(d) {return d.pos.cy;})
+                .attr('x', function(d) { return d.pos.cx + textMarginLeft; })
+                .attr('y', function(d) { return d.pos.cy; })
                 .attr('transform', function(d) {
-                    if (lastLevel) return '';
+                    if (lastLevel) { return ''; }
                     var angle = Math.min(20+levelData.length,90);
                     var x = d.pos.cx + textMarginLeft;
                     return 'rotate('+angle+','+x+','+d.pos.cy+')';
                 });
             
             var levelWidth = relX(1.0 / levelData.length);
-            if (!anyNamed) levelWidth *= 0.5;
+            if (!anyNamed) { levelWidth *= 0.5; }
             levelX += levelWidth;
             
-            if (depth == 0) return;
+            if (depth === 0) { return; }
             
             nodes.select('path')
                 .on('click', toggleExpand)
                 .attr('style', function(d) {
-                    if (d.lineOnly)
+                    if (d.lineOnly) {
                         return 'fill: none; stroke: gray; stroke-opacity: 0.3; stroke-width: 1.0';
-                    if (!d.expanded)
+                    }
+                    if (!d.expanded) {
                         return 'fill: url(#grad1)';
-                    else
+                    } else {
                         return 'fill: gray; fill-opacity: 0.3';
+                    }
                 })
                 .transition()
                 .attr('d', function (d) {
                     var w = d.pos.cx - d.parent.pos.cx;
-                    var ctrl1 = {
-                        x: d.parent.pos.cx + w*0.5,
-                        y: d.parentLinkPos.cy
-                    };
-                    var ctrl2 = {
-                        x: d.pos.cx - w*0.5,
-                        y: d.pos.cy
-                    };
                     
                     var p = svgPath.moveTo(d.parent.pos.cx, d.parentLinkPos.y0) +
                         svgPath.curveTo(
@@ -243,10 +238,10 @@ function collapseLargeLevels(data) {
         return node;
     }
     
-    function isLeaf(d) { return !d.c || d.c.length==0 };
+    function isLeaf(d) { return !d.c || d.c.length === 0; }
     
     var leaves = data.filter(isLeaf);
-    var branches = data.filter(function (d) {!isLeaf(d)});
+    var branches = data.filter(function (d) { return !isLeaf(d); });
     
     if (leaves.length > 0 && branches.length > 0) {
         
@@ -262,7 +257,7 @@ function collapseLargeLevels(data) {
     
         return [
             newNode(branches, branches.length + ' branches'),
-            newNode(branches, leaves.length + ' leaves'),
+            newNode(branches, leaves.length + ' leaves')
         ];
     }
     
@@ -293,8 +288,9 @@ function expandChildren(parent) {
     var insertPos = 0;
     if (level > 0) {
         while (insertPos < curLevel.length &&
-               curLevel[insertPos].parent.pos.index < parent.pos.index)
+               curLevel[insertPos].parent.pos.index < parent.pos.index) {
             insertPos++;
+        }
     }
     
     var childCumsum = 0;
@@ -322,7 +318,7 @@ function removeChildren(node) {
         if (isChild && d.expanded) removeChildren(d);
         return !isChild;
     });
-    if (levelData[level].length == 0) levelData.pop();
+    if (levelData[level].length === 0) levelData.pop();
 }
 
 function fetchSubtree(node) {
@@ -345,7 +341,7 @@ function fetchSubtree(node) {
         if (wasExpanded) expandChildren(node);
         //console.log(file +' loaded');
         updateLevels();
-    })
+    });
 }
 
 d3.json('data/root.json', function (error, data) {
