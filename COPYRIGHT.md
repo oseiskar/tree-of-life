@@ -9,7 +9,7 @@ data in http://files.opentreeoflife.org/trees/draftversion3.tre.gz (fetched
     Copyright March 2015, Open Tree of Life
 
 The included JSON data have been derived from the decompressed version of
-this file using the attached C++ program `tree.cpp` executed via `make jsons`.
+this file using the attached C++ program executed via `make jsons`.
 
 
 __Other material (the code)__

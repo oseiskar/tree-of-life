@@ -8,7 +8,7 @@ is browsable through the application.  The width of the branches represents the
 number of species they contain.
 
 The tree has been split into many overlapping subtrees using the C++ program
-`tree.cpp`, called via
+called via
 
     make jsons
 
