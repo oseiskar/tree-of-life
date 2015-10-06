@@ -1,11 +1,13 @@
 
-#include <trie.hpp>
 #include <assert.h>
 #include <sstream>
 
-std::ostream &trie_structure_json(const CharTrie &trie, std::ostream &os) {
+#include <trie.hpp>
+
+template <class Trie>
+void trie_structure_json(const Trie &trie, std::ostream &os) {
     os << "{";
-    CharTrie::const_iterator c = trie.children.begin(); 
+    typename Trie::const_iterator c = trie.children.begin(); 
     while (c != trie.children.end()) {
         os << '\"' << c->first << "\":";
         trie_structure_json(c->second, os);
@@ -13,10 +15,10 @@ std::ostream &trie_structure_json(const CharTrie &trie, std::ostream &os) {
         if (c != trie.children.end()) os << ",";
     }
     os << "}";
-    return os;
 }
 
-std::string trie_structure_json(const CharTrie &trie) {
+template <class Trie>
+std::string trie_structure_json(const Trie &trie) {
     std::ostringstream oss;
     trie_structure_json(trie,oss);
     return oss.str();
@@ -44,6 +46,9 @@ void run_trie_tests() {
     assert(t.get("abcd") == one);
     assert(t.get("abf") == two);
     assert(t.get("ab") == three);
+    
+    StringTrie string_trie(t);
+    assert(trie_structure_json(string_trie) == "{\"ab\":{\"cd\":{},\"f\":{}}}");
     
     std::cerr << "." << std::endl;
 }

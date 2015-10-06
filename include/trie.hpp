@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <map>
+#include <list>
 #include <stdexcept>
 
 using std::string;
@@ -8,8 +9,10 @@ using std::string;
 class CharTrie {
 public:
     std::map<char, CharTrie> children;
+    
+    bool has_value;
+    string value;
 
-    typedef std::map<char, CharTrie>::iterator iterator;
     typedef std::map<char, CharTrie>::const_iterator const_iterator;
 
     void insert(const char *key, string value, bool replace = false) {
@@ -32,8 +35,7 @@ public:
     CharTrie() : has_value(false) {}
     
 private:
-    string value;
-    bool has_value;
+    typedef std::map<char, CharTrie>::iterator iterator;
 
     CharTrie &lookup_subtree(const char *&key) {
         
@@ -58,5 +60,50 @@ private:
         
         children[key[0]] = CharTrie();
         children.find(key[0])->second.insert_subtree(key+1, new_v, replace);
+    }
+};
+
+class StringTrie {
+public:
+    typedef std::pair<string, StringTrie> KeyValuePair;
+    std::list<KeyValuePair> children;
+    typedef std::list<KeyValuePair>::const_iterator const_iterator;
+    
+    string value;
+    bool has_value;
+    
+    StringTrie(const CharTrie &char_trie) {
+        copy_char_trie(char_trie);
+    }
+    
+private:
+    StringTrie() : has_value(false) {}
+    
+    void copy_char_trie(const CharTrie &char_trie) {
+        value = char_trie.value;
+        has_value = char_trie.has_value;
+        add_children(char_trie);
+    }
+
+    void add_children(const CharTrie &char_trie) {
+        for (CharTrie::const_iterator itr = char_trie.children.begin();
+            itr != char_trie.children.end(); ++itr) {
+            
+            std::ostringstream edge;
+            children.push_back(KeyValuePair("", StringTrie()));
+            edge << itr->first;
+            add_child(itr->second, children.back(), edge);
+        }
+    }
+
+    void add_child(const CharTrie &child, KeyValuePair& kv_pair, std::ostringstream &edge) {
+        if (child.children.size() == 1 && !child.has_value) {
+            edge <<  child.children.begin()->first;
+            add_child(child.children.begin()->second, kv_pair, edge);
+        }
+        else {
+            kv_pair.first = edge.str();
+            kv_pair.second.copy_char_trie(child);
+        }
     }
 };
