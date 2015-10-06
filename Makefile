@@ -1,15 +1,15 @@
 CFLAGS=-O3 -Wall -Wextra -pedantic
 CC=g++
 
-.PHONY: all clean jsons
+.PHONY: clean jsons
 
-tree: tree.cpp
-	$(CC) tree.cpp $(CFLAGS) -o tree
-	
-jsons: clean tree data/draftversion3.tre
-	./tree < data/draftversion3.tre
+bin/tree: src/tree.cpp
+	$(CC) src/tree.cpp $(CFLAGS) -o bin/tree
+
+jsons: clean bin/tree data/draftversion3.tre
+	bin/tree < data/draftversion3.tre
 	
 clean:
-	rm -f tree
+	rm -f bin/tree bin/*.o
 	rm -f data/subtree*.json
 	rm -f data/root.json
