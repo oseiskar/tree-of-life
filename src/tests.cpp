@@ -26,6 +26,7 @@ std::string trie_structure_json(const Trie &trie) {
 
 void run_trie_tests() {
     CharTrie t;
+    StringTrie string_trie;
     
     std::string one("1"), two("2"), three("3");
     
@@ -47,7 +48,7 @@ void run_trie_tests() {
     assert(t.get("abf") == two);
     assert(t.get("ab") == three);
     
-    StringTrie string_trie(t);
+    string_trie.copy_char_trie(t);
     assert(trie_structure_json(string_trie) == "{\"ab\":{\"cd\":{},\"f\":{}}}");
     
     std::cerr << "." << std::endl;

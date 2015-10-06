@@ -3,6 +3,9 @@
 #include <map>
 #include <list>
 #include <stdexcept>
+#include <fstream>
+
+#include <json.hpp>
 
 using std::string;
 
@@ -72,11 +75,6 @@ public:
     string value;
     bool has_value;
     
-    StringTrie(const CharTrie &char_trie) {
-        copy_char_trie(char_trie);
-    }
-    
-private:
     StringTrie() : has_value(false) {}
     
     void copy_char_trie(const CharTrie &char_trie) {
@@ -84,6 +82,33 @@ private:
         has_value = char_trie.has_value;
         add_children(char_trie);
     }
+    
+    void write_json(std::ostream &os) const {
+        os << "{";
+        
+        if (children.size() > 0) {
+            os << "\"c\":{";
+            
+            StringTrie::const_iterator c = children.begin(); 
+            while (c != children.end()) {
+                write_json_str(os, c->first);
+                os << ':';
+                c->second.write_json(os);
+                ++c;
+                if (c != children.end()) os << ",";
+            }
+            os << "}";
+        }
+        
+        if (has_value) {
+            if (children.size() > 0) os << ',';
+            os << "\"v\":";
+            write_json_str(os, value);
+        }
+        os << "}";
+    }
+    
+private:
 
     void add_children(const CharTrie &char_trie) {
         for (CharTrie::const_iterator itr = char_trie.children.begin();

@@ -12,6 +12,8 @@
 #include <vector>
 #include <fstream>
 
+#include <json.hpp>
+
 using std::list;
 using std::vector;
 using std::string;
@@ -32,6 +34,8 @@ struct Tree {
     string name, name_prefix, name_id;
     int total_leaves, total_nodes;
     int subtree_index;
+    
+    typedef list<Tree>::const_iterator const_iterator;
     
     static int max_depth;
  
@@ -94,15 +98,6 @@ void read_newick_tree(Tree &tree, std::istream &is, int depth = 0) {
     tree.set_name(read_newick_string(is));
     
     if (depth == 0 && is.peek() == ';') is.ignore();
-}
-
-void write_json_str(std::ostream &os, const string &str) {
-    os << "\"";
-    for (size_t i = 0; i < str.size(); ++i) {
-        if (str[i] == '"') os << "\\\"";
-        else os << str[i];
-    }
-    os << "\"";
 }
 
 void write_tree_json(const Tree& tree, std::ostream &os, bool root = true) {
