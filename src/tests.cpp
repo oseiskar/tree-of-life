@@ -25,28 +25,32 @@ std::string trie_structure_json(const CharTrie &trie) {
 void run_trie_tests() {
     CharTrie t;
     
-    int one = 1, two = 2, three = 3;
+    std::string one("1"), two("2"), three("3");
     
-    t.insert("abcd", &one);
+    t.insert("abcd", one);
     
     assert(trie_structure_json(t) == "{\"a\":{\"b\":{\"c\":{\"d\":{}}}}}");
     assert(t.lookup("foobar") == NULL);
-    assert(t.lookup("abcd") == &one);
+    assert(t.get("abcd") == one);
     
-    t.insert("abf", &two);
+    t.insert("abf", two);
     assert(trie_structure_json(t) == "{\"a\":{\"b\":{\"c\":{\"d\":{}},\"f\":{}}}}");
-    assert(t.lookup("abcd") == &one);
-    assert(t.lookup("abf") == &two);
+    assert(t.get("abcd") == one);
+    assert(t.get("abf") == two);
     assert(t.lookup("ab") == NULL);
     
-    t.insert("ab", &three);
+    t.insert("ab", three);
     assert(trie_structure_json(t) == "{\"a\":{\"b\":{\"c\":{\"d\":{}},\"f\":{}}}}");
-    assert(t.lookup("abcd") == &one);
-    assert(t.lookup("abf") == &two);
-    assert(t.lookup("ab") == &three);
+    assert(t.get("abcd") == one);
+    assert(t.get("abf") == two);
+    assert(t.get("ab") == three);
+    
+    std::cerr << "." << std::endl;
 }
 
 int main() {
     run_trie_tests();
+    
+    std::cerr << "passed" << std::endl;
     return 0;
 }

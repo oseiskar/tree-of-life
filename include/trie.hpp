@@ -3,28 +3,37 @@
 #include <map>
 #include <stdexcept>
 
+using std::string;
+
 class CharTrie {
 public:
     std::map<char, CharTrie> children;
 
     typedef std::map<char, CharTrie>::iterator iterator;
     typedef std::map<char, CharTrie>::const_iterator const_iterator;
-    
-    CharTrie(const void *v = NULL) : value(v) {}
 
-    void insert(const char *key, const void *v, bool replace = false) {
+    void insert(const char *key, string value, bool replace = false) {
         CharTrie &where = lookup_subtree(key);
-        where.insert_subtree(key, v, replace);
+        where.insert_subtree(key, value, replace);
     }
     
-    const void *lookup(const char *key) {
+    const string *lookup(const char *key) {
         CharTrie &where = lookup_subtree(key);
-        if (key[0] != '\0') return NULL;
-        return where.value;
+        if (key[0] != '\0' || !where.has_value) return NULL;
+        return &(where.value);
     }
+    
+    const string &get(const char *key) {
+        const string *s = lookup(key);
+        if (s == NULL) throw std::runtime_error("not found");
+        return *s;
+    }
+    
+    CharTrie() : has_value(false) {}
     
 private:
-    const void *value;
+    string value;
+    bool has_value;
 
     CharTrie &lookup_subtree(const char *&key) {
         
@@ -37,12 +46,13 @@ private:
         return *this;
     }
     
-    void insert_subtree(const char *key, const void *new_v, bool replace) {
+    void insert_subtree(const char *key, const string &new_v, bool replace) {
         
         if (key[0] == '\0') {
-            if (!replace && value != NULL)
+            if (!replace && has_value)
                 throw std::runtime_error("key already exists in trie");
             value = new_v;
+            has_value = true;
             return;
         }
         
