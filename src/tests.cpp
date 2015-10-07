@@ -105,9 +105,22 @@ void run_trie_tests() {
     std::cerr << "trie tests passed" << std::endl;
 }
 
+void run_misc_tests() {
+    
+    assert(to_string(123) == string("123"));
+    assert(to_string('c') == string("c"));
+    
+    std::cerr << "misc tests passed" << std::endl;
+    
+    std::string test_str = "aa bb c d";
+    replace_all_in_place(test_str, ' ', '.');
+    assert(test_str == string("aa.bb.c.d"));
+}
+
 int main() {
     run_trie_tests();
     run_json_tests();
+    run_misc_tests();
     
     std::cerr << "all passed" << std::endl;
     return 0;

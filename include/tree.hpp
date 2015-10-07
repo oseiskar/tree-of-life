@@ -19,35 +19,17 @@ using std::vector;
 using std::string;
 using std::runtime_error;
 
-void replace_all_in_place(string &str, char target, char replacement) {
-    for(size_t i=0; i<str.size(); ++i)
-        if (str[i] == target) str[i] = replacement;
-}
-
-struct Tree {
-    list<Tree> children;
+struct TreeOfLife {
+    list<TreeOfLife> children;
     string name, name_prefix, name_id;
     int total_leaves, total_nodes;
     int subtree_index;
     
-    typedef list<Tree>::const_iterator const_iterator;
+    typedef list<TreeOfLife>::const_iterator const_iterator;
     
-    static int max_depth;
- 
-    Tree() :
-        total_leaves(0), 
-        total_nodes(1),
-        subtree_index(0)
-    {}
- 
-    void set_name(string name_) {
-        name = name_;
-        
-        int uscore_pos = name.find_last_of('_');
-        
-        name_prefix = name.substr(0,uscore_pos);
-        replace_all_in_place(name_prefix, '_', ' ');
-        name_id = name.substr(uscore_pos+1);
+    TreeOfLife(std::istream &newick_input) {
+        init();
+        read_newick(newick_input);
     }
 
     void write_json(JsonWriter &json) const {
@@ -78,59 +60,66 @@ struct Tree {
         }
         json.end('}');
     }
+    
+private:
+    void init() {
+        total_leaves = 0;
+        total_nodes = 1;
+        subtree_index = 0;
+    }
+
+    TreeOfLife() { init(); }
+    
+    void read_newick(std::istream &is, int depth = 0) {
+        
+        if (is.peek() == '(') {
+            is.ignore();
+            while (true) {
+                children.push_back(TreeOfLife());
+                TreeOfLife &child = children.back();
+                
+                child.read_newick(is, depth+1);
+                
+                total_leaves += child.total_leaves;
+                total_nodes += child.total_nodes;
+                
+                char c = is.get();
+                if (c == ',') continue;
+                if (c == ')') break;
+                throw runtime_error("unexpected token "+string(1, c));
+            }
+        } else {
+            total_leaves = 1;
+        }
+        
+        set_name(read_newick_string(is));
+        
+        if (depth == 0 && is.peek() == ';') is.ignore();
+    }
+    
+    string read_newick_string(std::istream &is) {
+        std::ostringstream oss;
+        while (true) {
+            char c = is.peek();
+            if (c == ',' || c == ')' || c == ';' || is.eof()) return oss.str();
+            oss << c;
+            is.ignore();
+        }
+        throw runtime_error("unexpected eof");
+    }
+    
+    void set_name(string name_) {
+        name = name_;
+        
+        int uscore_pos = name.find_last_of('_');
+        
+        name_prefix = name.substr(0,uscore_pos);
+        replace_all_in_place(name_prefix, '_', ' ');
+        name_id = name.substr(uscore_pos+1);
+    }
 };
 
-int Tree::max_depth;
-
-string read_newick_string(std::istream &is) {
-    std::ostringstream oss;
-    while (true) {
-        char c = is.peek();
-        if (c == ',' || c == ')' || c == ';' || is.eof()) return oss.str();
-        oss << c;
-        is.ignore();
-    }
-    throw runtime_error("unexpected eof");
-}
-
-void read_newick_tree(Tree &tree, std::istream &is, int depth = 0) {
-    
-    if (depth == 0) Tree::max_depth = 0;
-    
-    if (Tree::max_depth < depth) Tree::max_depth = depth;
-    
-    if (is.peek() == '(') {
-        is.ignore();
-        while (true) {
-            tree.children.push_back(Tree());
-            Tree &child = tree.children.back();
-            
-            read_newick_tree(child, is, depth+1);
-            
-            tree.total_leaves += child.total_leaves;
-            tree.total_nodes += child.total_nodes;
-            
-            char c = is.get();
-            if (c == ',') continue;
-            if (c == ')') break;
-            throw runtime_error("unexpected token "+string(1, c));
-        }
-    } else {
-        tree.total_leaves = 1;
-    }
-    
-    tree.set_name(read_newick_string(is));
-    
-    if (depth == 0 && is.peek() == ';') is.ignore();
-}
-
-int write_tree_json_file(const Tree& tree, string fn) {
-    JsonWriter json(fn);
-    tree.write_json(json);
-    return json.bytes_written();
-}
-
-void decompose_tree(Tree &root, list<Tree> &out,
+void decompose_tree(TreeOfLife &root, list<TreeOfLife> &out,
                     const int max_subtree_size,
                     int overlap_depth = 0) {
     
@@ -154,13 +143,13 @@ void decompose_tree(Tree &root, list<Tree> &out,
         overlap_depth++;
     }
     
-    for(list<Tree>::iterator itr = root.children.begin();
+    for(list<TreeOfLife>::iterator itr = root.children.begin();
             itr != root.children.end();
             itr++) 
         decompose_tree(*itr, out, max_subtree_size, overlap_depth);
 }
 
-void iterative_decomposition(Tree &root, list<Tree> &out) {
+void iterative_decomposition(TreeOfLife &root, list<TreeOfLife> &out) {
     
     const int DECOMPOSITION_ITR = 3;
     
@@ -170,7 +159,7 @@ void iterative_decomposition(Tree &root, list<Tree> &out) {
         100000
     };
     
-    vector<Tree*> roots;
+    vector<TreeOfLife*> roots;
     roots.push_back(&root);
     
     for (int itr=0; itr < DECOMPOSITION_ITR; ++itr) {
@@ -182,7 +171,7 @@ void iterative_decomposition(Tree &root, list<Tree> &out) {
         size_t old_n_out = out.size();
         
         for (size_t i = 0; i < roots.size(); ++i) {
-            Tree &cur_root = *roots[i];
+            TreeOfLife &cur_root = *roots[i];
             if (cur_root.total_nodes > max_subtree_size)
                 decompose_tree(cur_root, out, max_subtree_size);
         }
@@ -190,9 +179,9 @@ void iterative_decomposition(Tree &root, list<Tree> &out) {
         roots.clear();
         
         // avoid the temptation of changing out to a vector -> nasal demons
-        list<Tree>::reverse_iterator root_itr = out.rbegin();
+        list<TreeOfLife>::reverse_iterator root_itr = out.rbegin();
         for (size_t i = old_n_out; i < out.size(); ++i) {
-            Tree &new_root = *(root_itr++);
+            TreeOfLife &new_root = *(root_itr++);
             roots.push_back(&new_root);
         }
     }

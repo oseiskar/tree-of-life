@@ -3,22 +3,20 @@
 
 class SearchTree {
 public:
-    SearchTree(const Tree &tree) {
+    SearchTree(const TreeOfLife &tree) {
         traverse_tree(tree);
         string_trie.copy_char_trie(char_trie);
     }
     
-    size_t write_json_file(const char *fn) {
-        JsonWriter json(fn);
+    void write_json(JsonWriter &json) const {
         string_trie.write_json(json);
-        return json.bytes_written();
     }
     
 private:
     CharTrie char_trie;
     StringTrie string_trie;
     
-    void visit(const Tree &tree) {
+    void visit(const TreeOfLife &tree) {
         const std::string &name = tree.name; //tree.name_prefix;
         if (name.size() > 0) {
             //std::cerr << "storing " << name << std::endl;
@@ -26,8 +24,8 @@ private:
         }
     }
     
-    void traverse_tree(const Tree& tree) {
-        Tree::const_iterator c = tree.children.begin(); 
+    void traverse_tree(const TreeOfLife& tree) {
+        TreeOfLife::const_iterator c = tree.children.begin(); 
         visit(tree);
         while (c != tree.children.end()) {
             traverse_tree(*c);
@@ -41,6 +39,14 @@ std::ostream &format_bytes(std::ostream &os, size_t bytes) {
     return os;
 }
 
+template <class Tree>
+void write_json_tree(const Tree& tree, string fn, std::ostream &log) {
+    log << "writing tree " << fn <<  "\t";
+    JsonWriter json(fn);
+    tree.write_json(json);
+    format_bytes(log, json.bytes_written()) << std::endl;
+}
+
 int main() {
     
     using std::endl;
@@ -48,34 +54,27 @@ int main() {
     std::ostream &log = std::cerr;
     
     log << "reading Newick tree from stdin..." << endl;
-    Tree tree;
-    read_newick_tree(tree, std::cin);
+    TreeOfLife tree(std::cin);
     
     log << tree.name_prefix << endl;
     log << tree.total_leaves << " leaf nodes" << endl;
     log << tree.total_nodes << " nodes" << endl;
-    log << Tree::max_depth << " max depth" << endl;
     
     log << "generating search tree..." << endl;
     SearchTree search(tree);
-    const char *search_fn = "data/search.json";
-    log << "search tree constructed, writing " << search_fn << "\t";
-    format_bytes(log, search.write_json_file(search_fn)) << endl;
+    write_json_tree(search, "data/search.json", log);
     
-    list<Tree> subtrees;
+    list<TreeOfLife> subtrees;
     log << "decomposing..." << endl;
     iterative_decomposition(tree, subtrees);
     log << "got " << subtrees.size() << " subtrees" << endl;
     
-    list<Tree>::const_iterator itr = subtrees.begin();
+    list<TreeOfLife>::const_iterator itr = subtrees.begin();
     for (size_t idx = 1; idx <= subtrees.size(); ++idx) {
-        log << "writing subtree " << idx << "\t";
         string name = "data/subtree-"+to_string(idx)+".json";
-        format_bytes(log, write_tree_json_file(*itr, name)) << endl;
+        write_json_tree(*itr, name, log);
         itr++;
     }
     
-    log << "root "
-         << write_tree_json_file(tree, "data/root.json") / 1024
-         << " kB" << endl;
+    write_json_tree(tree, "data/root.json", log);
 }

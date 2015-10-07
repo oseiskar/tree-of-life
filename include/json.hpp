@@ -166,4 +166,9 @@ template <class T> std::string to_string(T x) {
     std::ostringstream oss; oss << x; return oss.str();
 }
 
+void replace_all_in_place(std::string &str, char target, char replacement) {
+    for(size_t i=0; i<str.size(); ++i)
+        if (str[i] == target) str[i] = replacement;
+}
+
 #endif
