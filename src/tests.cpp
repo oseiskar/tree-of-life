@@ -3,6 +3,7 @@
 #include <sstream>
 
 #include <trie.hpp>
+#include <json.hpp>
 
 template <class Trie>
 void trie_structure_json(const Trie &trie, std::ostream &os) {
@@ -22,6 +23,56 @@ std::string trie_structure_json(const Trie &trie) {
     std::ostringstream oss;
     trie_structure_json(trie,oss);
     return oss.str();
+}
+
+#define ASSERT_JSON_ERROR(x) try { x; assert(false); } catch(JsonWriter::error&) {}
+
+void run_json_tests() {
+    {
+    JsonWriter json;
+    assert(json.to_string() == string(""));
+    
+    json.begin('{')
+        .key("foo")
+        .value(2)
+        .key("bar")
+        .begin('[')
+            .value("asdf")
+            .null_value()
+            
+            .begin('{')
+            .end('}')
+        
+            .value(2.5)
+        .end(']')
+    .end('}');
+    
+    assert(json.to_string() == string("{\"foo\":2,\"bar\":[\"asdf\",null,{},2.5]}"));
+    }
+    
+    JsonWriter json;
+    
+    ASSERT_JSON_ERROR( json.end('}') );
+    ASSERT_JSON_ERROR( json.key("foo") );
+    
+    json.begin('{');
+    ASSERT_JSON_ERROR( json.value(1) );
+    ASSERT_JSON_ERROR( json.begin('{') );
+    ASSERT_JSON_ERROR( json.end(']') );
+    json.key("foo");
+    ASSERT_JSON_ERROR( json.key("bar") );
+    json.begin('[');
+    ASSERT_JSON_ERROR( json.key("baz") );
+    json.value(1);
+    json.end(']');
+    json.end('}');
+    ASSERT_JSON_ERROR( json.value(1) );
+    ASSERT_JSON_ERROR( json.key("fsd") );
+    ASSERT_JSON_ERROR( json.end('}') );
+    ASSERT_JSON_ERROR( json.begin('[') );
+    
+    std::cerr << "json tests passed" << std::endl;
+    
 }
 
 void run_trie_tests() {
@@ -51,12 +102,13 @@ void run_trie_tests() {
     string_trie.copy_char_trie(t);
     assert(trie_structure_json(string_trie) == "{\"ab\":{\"cd\":{},\"f\":{}}}");
     
-    std::cerr << "." << std::endl;
+    std::cerr << "trie tests passed" << std::endl;
 }
 
 int main() {
     run_trie_tests();
+    run_json_tests();
     
-    std::cerr << "passed" << std::endl;
+    std::cerr << "all passed" << std::endl;
     return 0;
 }
