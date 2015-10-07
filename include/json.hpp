@@ -8,15 +8,6 @@
 #include <memory>
 #include <stack>
 
-void write_json_str(std::ostream &os, const std::string &str) {
-    os << "\"";
-    for (size_t i = 0; i < str.size(); ++i) {
-        if (str[i] == '"') os << "\\\"";
-        else os << str[i];
-    }
-    os << "\"";
-}
-
 class JsonWriter {
 public:
     typedef std::runtime_error error;
@@ -95,6 +86,12 @@ public:
         return *this;
     }
     
+    // string aliases
+    JsonWriter& key(std::string s) { return key(s.c_str()); }
+    JsonWriter& value(std::string s) { return value(s.c_str()); }
+    JsonWriter& begin(const char *c) { return begin(only_char(c)); }
+    JsonWriter& end(const char *c) { return end(only_char(c));  }
+    
     size_t bytes_written() { return file().tellp(); }
     std::string to_string() { return stringstream().str(); }
     
@@ -106,18 +103,23 @@ private:
     void init_state() { last_token = NONE; }
     
     std::ostringstream& stringstream() {
-        assert(p_stringstream.get() != NULL);
+        if (p_stringstream.get() == NULL) throw error("not a stringstream");
         return *p_stringstream.get();
     }
     
     std::ofstream& file() {
-        assert(p_file.get() != NULL);
+        if (p_file.get() == NULL) throw error("not a file");
         return *p_file.get();
     }
     
     enum Token { NONE, OPENING, KEY, VALUE, CLOSING } last_token;
     
     std::stack<char> brackets;
+    
+    char only_char(const char *str) {
+        if (str[0] == '\0' || str[1] != '\0') throw error("multi-char bracket");
+        return str[0];
+    }
     
     void write_string(const char *str) {
         os << '"';
@@ -155,9 +157,13 @@ private:
         if (token != CLOSING && last_token != OPENING && last_token != KEY) {
             os << ',';
         }
-        
         last_token = token;
     }
 };
+
+// this is what I hate about C++
+template <class T> std::string to_string(T x) {
+    std::ostringstream oss; oss << x; return oss.str();
+}
 
 #endif

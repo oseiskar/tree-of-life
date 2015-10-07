@@ -6,23 +6,23 @@
 #include <json.hpp>
 
 template <class Trie>
-void trie_structure_json(const Trie &trie, std::ostream &os) {
-    os << "{";
-    typename Trie::const_iterator c = trie.children.begin(); 
-    while (c != trie.children.end()) {
-        os << '\"' << c->first << "\":";
-        trie_structure_json(c->second, os);
-        ++c;
-        if (c != trie.children.end()) os << ",";
+void trie_structure_json(const Trie &trie, JsonWriter &json) {
+    json.begin('{');
+    for(typename Trie::const_iterator c = trie.children.begin(); 
+        c != trie.children.end();
+        ++c)
+    {
+        json.key(to_string(c->first));
+        trie_structure_json(c->second, json);
     }
-    os << "}";
+    json.end('}');
 }
 
 template <class Trie>
 std::string trie_structure_json(const Trie &trie) {
-    std::ostringstream oss;
-    trie_structure_json(trie,oss);
-    return oss.str();
+    JsonWriter json;
+    trie_structure_json(trie,json);
+    return json.to_string();
 }
 
 #define ASSERT_JSON_ERROR(x) try { x; assert(false); } catch(JsonWriter::error&) {}

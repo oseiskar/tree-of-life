@@ -19,11 +19,6 @@ using std::vector;
 using std::string;
 using std::runtime_error;
 
-// this is what I hate about C++
-template <class T> string to_string(T x) {
-    std::ostringstream oss; oss << x; return oss.str();
-}
-
 void replace_all_in_place(string &str, char target, char replacement) {
     for(size_t i=0; i<str.size(); ++i)
         if (str[i] == target) str[i] = replacement;
@@ -53,6 +48,35 @@ struct Tree {
         name_prefix = name.substr(0,uscore_pos);
         replace_all_in_place(name_prefix, '_', ' ');
         name_id = name.substr(uscore_pos+1);
+    }
+
+    void write_json(JsonWriter &json) const {
+        
+        json.begin('{');
+        const string &name = name_prefix;
+        
+        if (name.size() > 0) {
+            json.key("n").value(name);
+        }
+        
+        if (children.size() > 0) {
+            
+            json.key("s").value(total_leaves);
+            
+            if (subtree_index > 0) {
+                json.key("subtree_index").value(subtree_index);
+            }
+            
+            json.key("c");
+            json.begin('[');
+            for (const_iterator itr = children.begin();
+                itr != children.end();
+                ++itr)
+                itr->write_json(json);
+                    
+            json.end(']');
+        }
+        json.end('}');
     }
 };
 
@@ -100,45 +124,11 @@ void read_newick_tree(Tree &tree, std::istream &is, int depth = 0) {
     if (depth == 0 && is.peek() == ';') is.ignore();
 }
 
-void write_tree_json(const Tree& tree, std::ostream &os, bool root = true) {
-    
-    os << "{";
-    const string &name = tree.name_prefix;
-    
-    if (name.size() > 0) {
-        os << "\"n\":";
-        write_json_str(os, name);
-    }
-    
-    if (tree.children.size() > 0) {
-        
-        if (name.size() > 0) os << ',';
-        
-        os << "\"s\":" << tree.total_leaves;
-        
-        if (tree.subtree_index > 0) {
-            os << ",\"subtree_index\":" << tree.subtree_index;
-        }
-        
-        os << ",\"c\":[";
-        list<Tree>::const_iterator itr = tree.children.begin();
-        while(itr != tree.children.end()) {
-            write_tree_json(*itr, os, false);
-            itr++;
-            if (itr != tree.children.end()) os << ',';
-        }
-        os << ']';
-    }
-    os << '}';
-    if (root) os << std::endl;
-}
-
 int write_tree_json_file(const Tree& tree, string fn) {
-    std::ofstream file(fn.c_str());
-    write_tree_json(tree, file);
-    return file.tellp();
+    JsonWriter json(fn);
+    tree.write_json(json);
+    return json.bytes_written();
 }
-
 
 void decompose_tree(Tree &root, list<Tree> &out,
                     const int max_subtree_size,

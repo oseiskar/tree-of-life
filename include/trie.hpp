@@ -83,29 +83,27 @@ public:
         add_children(char_trie);
     }
     
-    void write_json(std::ostream &os) const {
-        os << "{";
+    void write_json(JsonWriter &json) const {
+        json.begin('{');
         
         if (children.size() > 0) {
-            os << "\"c\":{";
+            json.key("c");
+            json.begin('{');
             
-            StringTrie::const_iterator c = children.begin(); 
-            while (c != children.end()) {
-                write_json_str(os, c->first);
-                os << ':';
-                c->second.write_json(os);
-                ++c;
-                if (c != children.end()) os << ",";
+            for(StringTrie::const_iterator c = children.begin(); 
+                c != children.end();
+                ++c)
+            {
+                json.key(c->first);
+                c->second.write_json(json);
             }
-            os << "}";
+            json.end('}');
         }
         
         if (has_value) {
-            if (children.size() > 0) os << ',';
-            os << "\"v\":";
-            write_json_str(os, value);
+            json.key("v").value(value);
         }
-        os << "}";
+        json.end('}');
     }
     
 private:

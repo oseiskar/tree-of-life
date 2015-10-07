@@ -9,9 +9,9 @@ public:
     }
     
     size_t write_json_file(const char *fn) {
-        std::ofstream file(fn);
-        string_trie.write_json(file);
-        return file.tellp();
+        JsonWriter json(fn);
+        string_trie.write_json(json);
+        return json.bytes_written();
     }
     
 private:
