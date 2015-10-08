@@ -53,7 +53,9 @@ private:
     
     void insert_subtree(const char *key, const string &new_v, bool replace) {
         
-        if (key[0] == '\0') {
+        char c = key[0];
+        
+        if (c == '\0') {
             if (!replace && has_value)
                 throw std::runtime_error("key already exists in trie");
             value = new_v;
@@ -61,8 +63,8 @@ private:
             return;
         }
         
-        children[key[0]] = CharTrie();
-        children.find(key[0])->second.insert_subtree(key+1, new_v, replace);
+        children[c] = CharTrie();
+        children.find(c)->second.insert_subtree(key+1, new_v, replace);
     }
 };
 

@@ -103,28 +103,45 @@ private:
         while (true) {
             char c = is.peek();
             if (c == ',' || c == ')' || c == ';' || is.eof()) return oss.str();
-            if (c != '\'') oss << c; // ignore single quotes
+            oss << c;
             is.ignore();
         }
         throw runtime_error("unexpected eof");
     }
     
     void set_name(string name_) {
-        name = name_;
+        name = translate_characters(name_);
         
         if (name.size() == 0) return;
         
-        int uscore_pos = name.find_last_of('_');
-        
-        name_prefix = name.substr(0,uscore_pos);
-        replace_all_in_place(name_prefix, '_', ' ');
-        name_id = name.substr(uscore_pos+1);
+        int id_begin = name.find_last_of(' ');
+        name_prefix = name.substr(0,id_begin);
+        name_id = name.substr(id_begin+1);
         
         if (name_id.substr(0,3) != string("ott"))
             throw runtime_error("expected ott+number");
         
         if (name_prefix.size() == 0) throw runtime_error("empty name");
         if (name_id.size() == 0) throw runtime_error("empty id");
+    }
+    
+    string translate_characters(string str) {
+        std::ostringstream oss;
+        for (size_t i=0; i<str.size(); ++i) {
+            char c = str[i];
+            switch(c) {
+            case '_':
+                oss << ' '; // convert underscores to spaces
+                break;
+            case '\'':
+                // drop all single quotes
+                break;
+            default:
+                oss << c;
+                break;
+            }
+        }
+        return oss.str();
     }
 };
 

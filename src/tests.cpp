@@ -5,6 +5,7 @@
 #include <trie.hpp>
 #include <tree.hpp>
 #include <json.hpp>
+#include <utf8.hpp>
 
 template <class Trie>
 void trie_structure_json(const Trie &trie, JsonWriter &json) {
@@ -132,9 +133,13 @@ void run_misc_tests() {
     assert(to_string(123) == string("123"));
     assert(to_string('c') == string("c"));
     
-    std::string test_str = "aa bb c d";
-    replace_all_in_place(test_str, ' ', '.');
-    assert(test_str == string("aa.bb.c.d"));
+    Utf8String utf8 = decode_utf8("\xC3\xA1 10\xE2\x82\xAC");
+    assert(utf8.size() == 5);
+    assert(utf8[0] == string("\xC3\xA1"));
+    assert(utf8[1] == string(" "));
+    assert(utf8[2] == string("1"));
+    assert(utf8[3] == string("0"));
+    assert(utf8[4] == string("\xE2\x82\xAC"));
     
     std::cerr << "misc tests passed" << std::endl;
 }

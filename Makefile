@@ -1,7 +1,7 @@
 CFLAGS=-O3 -Wall -Wextra -pedantic -Iinclude/
 CC=g++
 
-SOURCE_FILES = include/tree.hpp include/trie.hpp include/json.hpp
+SOURCE_FILES = include/tree.hpp include/trie.hpp include/json.hpp include/utf8.hpp
 
 .PHONY: clean jsons test
 
