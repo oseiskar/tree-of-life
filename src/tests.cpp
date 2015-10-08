@@ -3,6 +3,7 @@
 #include <sstream>
 
 #include <trie.hpp>
+#include <tree.hpp>
 #include <json.hpp>
 
 template <class Trie>
@@ -105,22 +106,44 @@ void run_trie_tests() {
     std::cerr << "trie tests passed" << std::endl;
 }
 
+void run_tree_of_life_tests() {
+    
+    std::istringstream newick_input(
+        "((raccoon_ott2,bear_ott3)land_ott1,(sea_lion_ott5,seal_ott6),dog_ott7);"
+    );
+    
+    TreeOfLife tol(newick_input);
+    JsonWriter json;
+    tol.write_json(json);
+    
+    string expected(
+        "{\"s\":5,\"c\":[{\"n\":\"land\",\"s\":2,\"c\":[{\"n\":\"raccoon\"},"
+        "{\"n\":\"bear\"}]},{\"s\":2,\"c\":[{\"n\":\"sea lion\"},"
+        "{\"n\":\"seal\"}]},{\"n\":\"dog\"}]}"
+    );
+    
+    assert(json.to_string() == expected);
+    
+    std::cerr << "tol tests passed" << std::endl;
+}
+
 void run_misc_tests() {
     
     assert(to_string(123) == string("123"));
     assert(to_string('c') == string("c"));
     
-    std::cerr << "misc tests passed" << std::endl;
-    
     std::string test_str = "aa bb c d";
     replace_all_in_place(test_str, ' ', '.');
     assert(test_str == string("aa.bb.c.d"));
+    
+    std::cerr << "misc tests passed" << std::endl;
 }
 
 int main() {
+    run_misc_tests();
     run_trie_tests();
     run_json_tests();
-    run_misc_tests();
+    run_tree_of_life_tests();
     
     std::cerr << "all passed" << std::endl;
     return 0;

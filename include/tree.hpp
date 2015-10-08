@@ -11,6 +11,7 @@
 #include <map>
 #include <vector>
 #include <fstream>
+#include <string>
 
 #include <json.hpp>
 
@@ -102,7 +103,7 @@ private:
         while (true) {
             char c = is.peek();
             if (c == ',' || c == ')' || c == ';' || is.eof()) return oss.str();
-            oss << c;
+            if (c != '\'') oss << c; // ignore single quotes
             is.ignore();
         }
         throw runtime_error("unexpected eof");
@@ -111,11 +112,19 @@ private:
     void set_name(string name_) {
         name = name_;
         
+        if (name.size() == 0) return;
+        
         int uscore_pos = name.find_last_of('_');
         
         name_prefix = name.substr(0,uscore_pos);
         replace_all_in_place(name_prefix, '_', ' ');
         name_id = name.substr(uscore_pos+1);
+        
+        if (name_id.substr(0,3) != string("ott"))
+            throw runtime_error("expected ott+number");
+        
+        if (name_prefix.size() == 0) throw runtime_error("empty name");
+        if (name_id.size() == 0) throw runtime_error("empty id");
     }
 };
 
