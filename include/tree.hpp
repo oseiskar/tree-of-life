@@ -127,16 +127,20 @@ private:
     
     string translate_characters(string str) {
         std::ostringstream oss;
+        bool leading_ws = true;
         for (size_t i=0; i<str.size(); ++i) {
             char c = str[i];
             switch(c) {
+            case ' ':
             case '_':
-                oss << ' '; // convert underscores to spaces
+                // convert underscores to spaces and drop leading space
+                if (!leading_ws) oss << ' '; 
                 break;
             case '\'':
                 // drop all single quotes
                 break;
             default:
+                leading_ws = false;
                 oss << c;
                 break;
             }

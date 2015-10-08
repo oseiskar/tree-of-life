@@ -13,7 +13,7 @@ public:
     }
     
 private:
-    CharTrie char_trie;
+    UnicodeTrie char_trie;
     StringTrie string_trie;
     
     void visit(const TreeOfLife &tree) {

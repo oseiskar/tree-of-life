@@ -60,7 +60,12 @@ uint32_t utf8_decode_dfa(uint32_t* state, uint32_t* codep, uint32_t byte) {
 
 // --------- snip ---------- added the following
 
+#include <vector>
+#include <string>
+
+// an unicode code point (character) represented as a utf-8-encoded string
 typedef std::string Utf8CodePoint;
+// unicode string represented as a vector of Utf8CodePoints
 typedef std::vector<Utf8CodePoint> Utf8String;
 
 Utf8String decode_utf8(const char *str) {

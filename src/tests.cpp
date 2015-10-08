@@ -78,7 +78,7 @@ void run_json_tests() {
 }
 
 void run_trie_tests() {
-    CharTrie t;
+    UnicodeTrie t;
     StringTrie string_trie;
     
     std::string one("1"), two("2"), three("3");
@@ -103,6 +103,11 @@ void run_trie_tests() {
     
     string_trie.copy_char_trie(t);
     assert(trie_structure_json(string_trie) == "{\"ab\":{\"cd\":{},\"f\":{}}}");
+    
+    UnicodeTrie utf8_trie;
+    utf8_trie.insert("\xC3\xA1", one);
+    utf8_trie.insert("\xC3\xA2", two);
+    assert(trie_structure_json(utf8_trie) == "{\"\xC3\xA1\":{},\"\xC3\xA2\":{}}");
     
     std::cerr << "trie tests passed" << std::endl;
 }
