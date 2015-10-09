@@ -13,14 +13,14 @@ public:
     }
     
 private:
-    UnicodeTrie char_trie;
-    StringTrie string_trie;
+    UnicodeTrie<int> char_trie;
+    StringTrie<int> string_trie;
     
     void visit(const TreeOfLife &tree) {
-        const std::string &name = tree.name; //tree.name_prefix;
-        if (name.size() > 0) {
+        if (tree.name.size() > 0) {
+            string name = tree.name + " " + tree.ext_id;
             //std::cerr << "storing " << name << std::endl;
-            char_trie.insert(name.c_str(), std::string("1"));
+            char_trie.insert(name.c_str(), tree.id);
         }
     }
     
@@ -56,7 +56,7 @@ int main() {
     log << "reading Newick tree from stdin..." << endl;
     TreeOfLife tree(std::cin);
     
-    log << tree.name_prefix << endl;
+    log << tree.name << endl;
     log << tree.total_leaves << " leaf nodes" << endl;
     log << tree.total_nodes << " nodes" << endl;
     

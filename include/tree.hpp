@@ -22,21 +22,22 @@ using std::runtime_error;
 
 struct TreeOfLife {
     list<TreeOfLife> children;
-    string name, name_prefix, name_id;
+    string name, ext_id;
+    int id;
     int total_leaves, total_nodes;
     int subtree_index;
     
     typedef list<TreeOfLife>::const_iterator const_iterator;
     
     TreeOfLife(std::istream &newick_input) {
-        init();
-        read_newick(newick_input);
+        int global_id = 1;
+        init(global_id);
+        read_newick(newick_input, 0, global_id);
     }
 
     void write_json(JsonWriter &json) const {
         
         json.begin('{');
-        const string &name = name_prefix;
         
         if (name.size() > 0) {
             json.key("n").value(name);
@@ -63,23 +64,24 @@ struct TreeOfLife {
     }
     
 private:
-    void init() {
+    void init(int &global_id) {
+        id = global_id++;
         total_leaves = 0;
         total_nodes = 1;
         subtree_index = 0;
     }
 
-    TreeOfLife() { init(); }
+    TreeOfLife(int &global_id) { init(global_id); }
     
-    void read_newick(std::istream &is, int depth = 0) {
+    void read_newick(std::istream &is, int depth, int &global_id) {
         
         if (is.peek() == '(') {
             is.ignore();
             while (true) {
-                children.push_back(TreeOfLife());
+                children.push_back(TreeOfLife(global_id));
                 TreeOfLife &child = children.back();
                 
-                child.read_newick(is, depth+1);
+                child.read_newick(is, depth+1, global_id);
                 
                 total_leaves += child.total_leaves;
                 total_nodes += child.total_nodes;
@@ -110,19 +112,19 @@ private:
     }
     
     void set_name(string name_) {
-        name = translate_characters(name_);
+        name = name_ = translate_characters(name_);
         
         if (name.size() == 0) return;
         
         int id_begin = name.find_last_of(' ');
-        name_prefix = name.substr(0,id_begin);
-        name_id = name.substr(id_begin+1);
+        name = name_.substr(0,id_begin);
+        ext_id = name_.substr(id_begin+1);
         
-        if (name_id.substr(0,3) != string("ott"))
+        if (ext_id.substr(0,3) != string("ott"))
             throw runtime_error("expected ott+number");
         
-        if (name_prefix.size() == 0) throw runtime_error("empty name");
-        if (name_id.size() == 0) throw runtime_error("empty id");
+        if (name.size() == 0) throw runtime_error("empty name");
+        if (ext_id.size() == 0) throw runtime_error("empty ext_id");
     }
     
     string translate_characters(string str) {

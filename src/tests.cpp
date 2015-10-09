@@ -78,8 +78,8 @@ void run_json_tests() {
 }
 
 void run_trie_tests() {
-    UnicodeTrie t;
-    StringTrie string_trie;
+    UnicodeTrie<string> t;
+    StringTrie<string> string_trie;
     
     std::string one("1"), two("2"), three("3");
     
@@ -104,10 +104,19 @@ void run_trie_tests() {
     string_trie.copy_char_trie(t);
     assert(trie_structure_json(string_trie) == "{\"ab\":{\"cd\":{},\"f\":{}}}");
     
-    UnicodeTrie utf8_trie;
-    utf8_trie.insert("\xC3\xA1", one);
-    utf8_trie.insert("\xC3\xA2", two);
-    assert(trie_structure_json(utf8_trie) == "{\"\xC3\xA1\":{},\"\xC3\xA2\":{}}");
+    UnicodeTrie<int> utf8_trie;
+    StringTrie<int> utf8_string_trie;
+    utf8_trie.insert("\xC3\xA0", 1);
+    utf8_trie.insert("\xC3\xA1", 2);
+    assert(trie_structure_json(utf8_trie) == "{\"\xC3\xA0\":{},\"\xC3\xA1\":{}}");
+    assert(utf8_trie.get("\xC3\xA0") == 1);
+    assert(utf8_trie.get("\xC3\xA1") == 2);
+    utf8_string_trie.copy_char_trie(utf8_trie);
+    assert(trie_structure_json(utf8_string_trie) == "{\"\xC3\xA0\":{},\"\xC3\xA1\":{}}");
+    
+    JsonWriter utf8_json;
+    utf8_string_trie.write_json(utf8_json);
+    assert(utf8_json.to_string() == string("{\"c\":{\"\xC3\xA0\":{\"v\":1},\"\xC3\xA1\":{\"v\":2}}}"));
     
     std::cerr << "trie tests passed" << std::endl;
 }
@@ -138,9 +147,9 @@ void run_misc_tests() {
     assert(to_string(123) == string("123"));
     assert(to_string('c') == string("c"));
     
-    Utf8String utf8 = decode_utf8("\xC3\xA1 10\xE2\x82\xAC");
+    Utf8String utf8 = decode_utf8("\xC3\xA0 10\xE2\x82\xAC");
     assert(utf8.size() == 5);
-    assert(utf8[0] == string("\xC3\xA1"));
+    assert(utf8[0] == string("\xC3\xA0"));
     assert(utf8[1] == string(" "));
     assert(utf8[2] == string("1"));
     assert(utf8[3] == string("0"));

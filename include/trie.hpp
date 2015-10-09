@@ -10,42 +10,43 @@
 
 using std::string;
 
+template <class Value>
 class UnicodeTrie {
 public:
     std::map<Utf8CodePoint, UnicodeTrie> children;
     
     bool has_value;
-    string value;
+    Value value;
 
-    typedef std::map<Utf8CodePoint, UnicodeTrie>::const_iterator const_iterator;
+    typedef typename std::map<Utf8CodePoint, UnicodeTrie<Value> >::const_iterator const_iterator;
 
-    void insert(const char *encoded_key, string value, bool replace = false) {
+    void insert(const char *encoded_key, Value value, bool replace = false) {
         Utf8String key = decode_utf8(encoded_key);
         Utf8String::const_iterator itr = key.begin();
-        UnicodeTrie &where = lookup_subtree(itr, key.end());
+        UnicodeTrie<Value> &where = lookup_subtree(itr, key.end());
         where.insert_subtree(itr, key.end(), value, replace);
     }
     
-    const string *lookup(const char *encoded_key) {
+    const Value *lookup(const char *encoded_key) {
         Utf8String key = decode_utf8(encoded_key);
         Utf8String::const_iterator itr = key.begin();
-        UnicodeTrie &where = lookup_subtree(itr, key.end());
+        UnicodeTrie<Value> &where = lookup_subtree(itr, key.end());
         if (itr != key.end() || !where.has_value) return NULL;
         return &(where.value);
     }
     
-    const string &get(const char *key) {
-        const string *s = lookup(key);
+    const Value &get(const char *key) {
+        const Value *s = lookup(key);
         if (s == NULL) throw std::runtime_error("not found");
         return *s;
     }
     
-    UnicodeTrie() : has_value(false) {}
+    UnicodeTrie<Value>() : has_value(false) {}
     
 private:
-    typedef std::map<Utf8CodePoint, UnicodeTrie>::iterator iterator;
+    typedef typename std::map<Utf8CodePoint, UnicodeTrie<Value> >::iterator iterator;
 
-    UnicodeTrie &lookup_subtree(
+    UnicodeTrie<Value> &lookup_subtree(
         Utf8String::const_iterator &key, 
         Utf8String::const_iterator key_end) {
         
@@ -62,7 +63,7 @@ private:
     void insert_subtree(
         Utf8String::const_iterator key,
         Utf8String::const_iterator key_end,
-        const string &new_v, bool replace) {
+        const Value &new_v, bool replace) {
         
         if (key == key_end) {
             if (!replace && has_value)
@@ -72,23 +73,24 @@ private:
             return;
         }
         
-        children[*key] = UnicodeTrie();
+        children[*key] = UnicodeTrie<Value>();
         children.find(*key)->second.insert_subtree(key+1, key_end, new_v, replace);
     }
 };
 
+template <class Value>
 class StringTrie {
 public:
-    typedef std::pair<string, StringTrie> KeyValuePair;
+    typedef std::pair<string, StringTrie<Value> > KeyValuePair;
     std::list<KeyValuePair> children;
-    typedef std::list<KeyValuePair>::const_iterator const_iterator;
+    typedef typename std::list<KeyValuePair>::const_iterator const_iterator;
     
-    string value;
+    Value value;
     bool has_value;
     
-    StringTrie() : has_value(false) {}
+    StringTrie<Value>() : has_value(false) {}
     
-    void copy_char_trie(const UnicodeTrie &char_trie) {
+    void copy_char_trie(const UnicodeTrie<Value> &char_trie) {
         value = char_trie.value;
         has_value = char_trie.has_value;
         add_children(char_trie);
@@ -101,7 +103,7 @@ public:
             json.key("c");
             json.begin('{');
             
-            for(StringTrie::const_iterator c = children.begin(); 
+            for(StringTrie<Value>::const_iterator c = children.begin(); 
                 c != children.end();
                 ++c)
             {
@@ -119,18 +121,18 @@ public:
     
 private:
 
-    void add_children(const UnicodeTrie &char_trie) {
-        for (UnicodeTrie::const_iterator itr = char_trie.children.begin();
+    void add_children(const UnicodeTrie<Value> &char_trie) {
+        for (typename UnicodeTrie<Value>::const_iterator itr = char_trie.children.begin();
             itr != char_trie.children.end(); ++itr) {
             
             std::ostringstream edge;
-            children.push_back(KeyValuePair("", StringTrie()));
+            children.push_back(KeyValuePair("", StringTrie<Value>()));
             edge << itr->first;
             add_child(itr->second, children.back(), edge);
         }
     }
 
-    void add_child(const UnicodeTrie &child, KeyValuePair& kv_pair, std::ostringstream &edge) {
+    void add_child(const UnicodeTrie<Value> &child, KeyValuePair& kv_pair, std::ostringstream &edge) {
         if (child.children.size() == 1 && !child.has_value) {
             edge <<  child.children.begin()->first;
             add_child(child.children.begin()->second, kv_pair, edge);
