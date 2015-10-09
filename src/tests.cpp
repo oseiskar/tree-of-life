@@ -27,7 +27,7 @@ std::string trie_structure_json(const Trie &trie) {
     return json.to_string();
 }
 
-#define ASSERT_JSON_ERROR(x) try { x; assert(false); } catch(JsonWriter::error&) {}
+#define ASSERT_THROWS(type, x) try { x; assert(false); } catch(type &) {}
 
 void run_json_tests() {
     {
@@ -39,39 +39,61 @@ void run_json_tests() {
         .value(2)
         .key("bar")
         .begin('[')
-            .value("asdf")
+            .value("AC/DC\n\t\r\b \\ ")
             .null_value()
-            
             .begin('{')
             .end('}')
-        
+            .value(true)
             .value(2.5)
+            .value(3)
         .end(']')
     .end('}');
     
-    assert(json.to_string() == string("{\"foo\":2,\"bar\":[\"asdf\",null,{},2.5]}"));
+    assert(json.to_string() == string(
+        "{\"foo\":2,\"bar\":["
+        "\"AC\\/DC\\n\\t\\r\\u0008 \\\\ \","
+        "null,{},true,2.5,3]}"));
     }
     
+    {
     JsonWriter json;
     
-    ASSERT_JSON_ERROR( json.end('}') );
-    ASSERT_JSON_ERROR( json.key("foo") );
+    ASSERT_THROWS(JsonWriter::error, json.end('}') );
+    ASSERT_THROWS(JsonWriter::error, json.key("foo") );
     
     json.begin('{');
-    ASSERT_JSON_ERROR( json.value(1) );
-    ASSERT_JSON_ERROR( json.begin('{') );
-    ASSERT_JSON_ERROR( json.end(']') );
+    ASSERT_THROWS(JsonWriter::error, json.value(1) );
+    ASSERT_THROWS(JsonWriter::error, json.begin('{') );
+    ASSERT_THROWS(JsonWriter::error, json.end(']') );
     json.key("foo");
-    ASSERT_JSON_ERROR( json.key("bar") );
+    ASSERT_THROWS(JsonWriter::error, json.key("bar") );
     json.begin('[');
-    ASSERT_JSON_ERROR( json.key("baz") );
+    ASSERT_THROWS(JsonWriter::error, json.key("baz") );
     json.value(1);
     json.end(']');
     json.end('}');
-    ASSERT_JSON_ERROR( json.value(1) );
-    ASSERT_JSON_ERROR( json.key("fsd") );
-    ASSERT_JSON_ERROR( json.end('}') );
-    ASSERT_JSON_ERROR( json.begin('[') );
+    ASSERT_THROWS(JsonWriter::error, json.value(1) );
+    ASSERT_THROWS(JsonWriter::error, json.key("fsd") );
+    ASSERT_THROWS(JsonWriter::error, json.end('}') );
+    ASSERT_THROWS(JsonWriter::error, json.begin('[') );
+    }
+    
+    {
+    JsonWriter json;
+    json.begin('[');
+    json.value(1);
+    json.end(']');
+    assert(json.to_string() == string("[1]"));
+    }
+    
+    {
+    JsonWriter json;
+    json.value(1);
+    ASSERT_THROWS(JsonWriter::error, json.value(2) );
+    ASSERT_THROWS(JsonWriter::error, json.begin('{') );
+    ASSERT_THROWS(JsonWriter::error, json.end('}') );
+    assert(json.to_string() == string("1"));
+    }
     
     std::cerr << "json tests passed" << std::endl;
     
@@ -83,6 +105,7 @@ void run_trie_tests() {
     
     std::string one("1"), two("2"), three("3");
     
+    {
     t.insert("abcd", one);
     
     assert(trie_structure_json(t) == "{\"a\":{\"b\":{\"c\":{\"d\":{}}}}}");
@@ -101,9 +124,15 @@ void run_trie_tests() {
     assert(t.get("abf") == two);
     assert(t.get("ab") == three);
     
+    ASSERT_THROWS(std::runtime_error, t.insert("abcd", two));
+    t.insert("abcd", two, true);
+    assert(t.get("abcd") == two);
+    
     string_trie.copy_char_trie(t);
     assert(trie_structure_json(string_trie) == "{\"ab\":{\"cd\":{},\"f\":{}}}");
+    }
     
+    {
     UnicodeTrie<int> utf8_trie;
     StringTrie<int> utf8_string_trie;
     utf8_trie.insert("\xC3\xA0", 1);
@@ -117,6 +146,15 @@ void run_trie_tests() {
     JsonWriter utf8_json;
     utf8_string_trie.write_json(utf8_json);
     assert(utf8_json.to_string() == string("{\"c\":{\"\xC3\xA0\":{\"v\":1},\"\xC3\xA1\":{\"v\":2}}}"));
+    
+    JsonWriter other_json;
+    other_json.begin("{");
+    other_json.key("root");
+    other_json.value(utf8_string_trie);
+    other_json.end("}");
+    assert(other_json.to_string() ==
+        string("{\"root\":{\"c\":{\"\xC3\xA0\":{\"v\":1},\"\xC3\xA1\":{\"v\":2}}}}"));
+    }
     
     std::cerr << "trie tests passed" << std::endl;
 }
@@ -160,8 +198,8 @@ void run_misc_tests() {
 
 int main() {
     run_misc_tests();
-    run_trie_tests();
     run_json_tests();
+    run_trie_tests();
     run_tree_of_life_tests();
     
     std::cerr << "all passed" << std::endl;

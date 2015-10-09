@@ -20,22 +20,22 @@ public:
 
     typedef typename std::map<Utf8CodePoint, UnicodeTrie<Value> >::const_iterator const_iterator;
 
-    void insert(const char *encoded_key, Value value, bool replace = false) {
-        Utf8String key = decode_utf8(encoded_key);
+    void insert(string encoded_key, Value value, bool replace = false) {
+        Utf8String key = decode_utf8(encoded_key.c_str());
         Utf8String::const_iterator itr = key.begin();
         UnicodeTrie<Value> &where = lookup_subtree(itr, key.end());
         where.insert_subtree(itr, key.end(), value, replace);
     }
     
-    const Value *lookup(const char *encoded_key) {
-        Utf8String key = decode_utf8(encoded_key);
+    const Value *lookup(string encoded_key) {
+        Utf8String key = decode_utf8(encoded_key.c_str());
         Utf8String::const_iterator itr = key.begin();
         UnicodeTrie<Value> &where = lookup_subtree(itr, key.end());
         if (itr != key.end() || !where.has_value) return NULL;
         return &(where.value);
     }
     
-    const Value &get(const char *key) {
+    const Value &get(string key) {
         const Value *s = lookup(key);
         if (s == NULL) throw std::runtime_error("not found");
         return *s;

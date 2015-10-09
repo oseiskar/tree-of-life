@@ -7,6 +7,7 @@
 #include <sstream>
 #include <memory>
 #include <stack>
+#include <iomanip>
 
 class JsonWriter {
 public:
@@ -86,6 +87,11 @@ public:
         return *this;
     }
     
+    template <class T> JsonWriter& value(const T& t) {
+        t.write_json(*this);
+        return *this;
+    }
+    
     // string aliases
     JsonWriter& key(std::string s) { return key(s.c_str()); }
     JsonWriter& value(std::string s) { return value(s.c_str()); }
@@ -124,8 +130,28 @@ private:
     void write_string(const char *str) {
         os << '"';
         while(*str != '\0') {
-            if (*str == '"') os << "\\\"";
-            else os << *str;
+            char c = *str;
+            switch (c) {
+            case '"': os << "\\\""; break;
+            case '/': os << "\\/"; break; // prevents "</script>"
+            case '\\': os << "\\\\"; break;
+            case '\n': os << "\\n"; break;
+            case '\r': os << "\\r"; break;
+            case '\t': os << "\\t"; break;
+            case '\f': os << "\\f"; break;
+            default:
+                if (unsigned(c) <= 0x1f) {
+                    // C++-style fprintf("%04x", x) <3
+                    std::ios::fmtflags f( os.flags() );
+                    os << "\\u"
+                       << std::setfill('0') << std::setw(4) 
+                       << std::hex
+                       << int(c);
+                    os.flags(f);
+                }
+                else os << c;
+                break;
+            }
             str++;
         }
         os << '"';
@@ -135,9 +161,11 @@ private:
         
         if (brackets.empty()) {
             if (last_token != NONE) throw error("cannot re-open final bracket");
-            if (token == OPENING) last_token = token;
-            else throw error("expected opening bracket");
-            return;
+            if (token == OPENING || token == VALUE) {
+                last_token = token;
+                return;
+            }
+            else throw error("unexpected token");
         }
         
         if (token == KEY) {

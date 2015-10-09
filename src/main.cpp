@@ -18,9 +18,10 @@ private:
     
     void visit(const TreeOfLife &tree) {
         if (tree.name.size() > 0) {
-            string name = tree.name + " " + tree.ext_id;
+            string name = tree.name;
+            if (char_trie.lookup(name)) name += " (" + tree.ext_id + ")";
             //std::cerr << "storing " << name << std::endl;
-            char_trie.insert(name.c_str(), tree.id);
+            char_trie.insert(name, tree.id);
         }
     }
     
