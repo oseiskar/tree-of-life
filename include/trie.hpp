@@ -1,41 +1,41 @@
+#ifndef __TRIE_HPP
+#define __TRIE_HPP
+
 #include <iostream>
 #include <string>
 #include <map>
 #include <list>
 #include <stdexcept>
-#include <fstream>
 
 #include <json.hpp>
 #include <utf8.hpp>
 
-using std::string;
-
 template <class Value>
 class UnicodeTrie {
 public:
-    std::map<Utf8CodePoint, UnicodeTrie> children;
+    std::map<Utf8::CodePoint, UnicodeTrie> children;
     
     bool has_value;
     Value value;
 
-    typedef typename std::map<Utf8CodePoint, UnicodeTrie<Value> >::const_iterator const_iterator;
+    typedef typename std::map<Utf8::CodePoint, UnicodeTrie<Value> >::const_iterator const_iterator;
 
-    void insert(string encoded_key, Value value, bool replace = false) {
-        Utf8String key = decode_utf8(encoded_key.c_str());
-        Utf8String::const_iterator itr = key.begin();
+    void insert(std::string encoded_key, Value value, bool replace = false) {
+        Utf8::String key = Utf8::decode(encoded_key.c_str());
+        Utf8::String::const_iterator itr = key.begin();
         UnicodeTrie<Value> &where = lookup_subtree(itr, key.end());
         where.insert_subtree(itr, key.end(), value, replace);
     }
     
-    const Value *lookup(string encoded_key) {
-        Utf8String key = decode_utf8(encoded_key.c_str());
-        Utf8String::const_iterator itr = key.begin();
+    const Value *lookup(std::string encoded_key) {
+        Utf8::String key = Utf8::decode(encoded_key.c_str());
+        Utf8::String::const_iterator itr = key.begin();
         UnicodeTrie<Value> &where = lookup_subtree(itr, key.end());
         if (itr != key.end() || !where.has_value) return NULL;
         return &(where.value);
     }
     
-    const Value &get(string key) {
+    const Value &get(std::string key) {
         const Value *s = lookup(key);
         if (s == NULL) throw std::runtime_error("not found");
         return *s;
@@ -44,11 +44,11 @@ public:
     UnicodeTrie<Value>() : has_value(false) {}
     
 private:
-    typedef typename std::map<Utf8CodePoint, UnicodeTrie<Value> >::iterator iterator;
+    typedef typename std::map<Utf8::CodePoint, UnicodeTrie<Value> >::iterator iterator;
 
     UnicodeTrie<Value> &lookup_subtree(
-        Utf8String::const_iterator &key, 
-        Utf8String::const_iterator key_end) {
+        Utf8::String::const_iterator &key, 
+        Utf8::String::const_iterator key_end) {
         
         if (key == key_end) return *this;
         
@@ -61,8 +61,8 @@ private:
     }
     
     void insert_subtree(
-        Utf8String::const_iterator key,
-        Utf8String::const_iterator key_end,
+        Utf8::String::const_iterator key,
+        Utf8::String::const_iterator key_end,
         const Value &new_v, bool replace) {
         
         if (key == key_end) {
@@ -81,7 +81,7 @@ private:
 template <class Value>
 class StringTrie {
 public:
-    typedef std::pair<string, StringTrie<Value> > KeyValuePair;
+    typedef std::pair<std::string, StringTrie<Value> > KeyValuePair;
     std::list<KeyValuePair> children;
     typedef typename std::list<KeyValuePair>::const_iterator const_iterator;
     
@@ -143,3 +143,5 @@ private:
         }
     }
 };
+
+#endif

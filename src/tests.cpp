@@ -1,11 +1,10 @@
 
-#include <assert.h>
-#include <sstream>
-
 #include <trie.hpp>
 #include <tree.hpp>
 #include <json.hpp>
 #include <utf8.hpp>
+
+#include <assert.h>
 
 template <class Trie>
 void trie_structure_json(const Trie &trie, JsonWriter &json) {
@@ -28,6 +27,8 @@ std::string trie_structure_json(const Trie &trie) {
 }
 
 #define ASSERT_THROWS(type, x) try { x; assert(false); } catch(type &) {}
+
+using std::string;
 
 void run_json_tests() {
     {
@@ -170,9 +171,41 @@ void run_tree_of_life_tests() {
     tol.write_json(json);
     
     string expected(
-        "{\"s\":5,\"c\":[{\"n\":\"land\",\"s\":2,\"c\":[{\"n\":\"raccoon\"},"
-        "{\"n\":\"bear\"}]},{\"s\":2,\"c\":[{\"n\":\"sea lion\"},"
-        "{\"n\":\"seal\"}]},{\"n\":\"dog\"}]}"
+        "{"
+            "\"data\":{"
+                "\"i\":1,"
+                "\"s\":5,"
+                "\"c\":["
+                    "{"
+                        "\"i\":2,"
+                        "\"n\":\"land\","
+                        "\"s\":2,"
+                        "\"c\":["
+                            "{\"i\":3,\"n\":\"raccoon\"},"
+                            "{\"i\":4,\"n\":\"bear\"}"
+                        "]"
+                    "},"
+                    "{"
+                        "\"i\":5,"
+                        "\"s\":2,"
+                        "\"c\":["
+                            "{\"i\":6,\"n\":\"sea lion\"},"
+                            "{\"i\":7,\"n\":\"seal\"}"
+                        "]"
+                    "},"
+                    "{\"i\":8,\"n\":\"dog\"}"
+                "]"
+            "},"
+            "\"parents\":{"
+                "\"2\":1,"
+                "\"3\":2,"
+                "\"4\":2,"
+                "\"5\":1,"
+                "\"6\":5,"
+                "\"7\":5,"
+                "\"8\":1"
+            "}"
+        "}"
     );
     
     assert(json.to_string() == expected);
@@ -185,7 +218,7 @@ void run_misc_tests() {
     assert(to_string(123) == string("123"));
     assert(to_string('c') == string("c"));
     
-    Utf8String utf8 = decode_utf8("\xC3\xA0 10\xE2\x82\xAC");
+    Utf8::String utf8 = Utf8::decode("\xC3\xA0 10\xE2\x82\xAC");
     assert(utf8.size() == 5);
     assert(utf8[0] == string("\xC3\xA0"));
     assert(utf8[1] == string(" "));

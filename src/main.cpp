@@ -1,5 +1,6 @@
 #include <tree.hpp>
 #include <trie.hpp>
+#include <assert.h>
 
 class SearchTree {
 public:
@@ -12,16 +13,29 @@ public:
         string_trie.write_json(json);
     }
     
+    struct Pointer {
+        int id;
+        int subtree;
+        
+        void write_json(JsonWriter &json) const {
+            json.begin('[')
+                .value(id)
+                .value(subtree)
+                .end(']');
+        }
+    };
+    
 private:
-    UnicodeTrie<int> char_trie;
-    StringTrie<int> string_trie;
+    UnicodeTrie<Pointer> char_trie;
+    StringTrie<Pointer> string_trie;
     
     void visit(const TreeOfLife &tree) {
         if (tree.name.size() > 0) {
-            string name = tree.name;
+            std::string name = tree.name;
             if (char_trie.lookup(name)) name += " (" + tree.ext_id + ")";
             //std::cerr << "storing " << name << std::endl;
-            char_trie.insert(name, tree.id);
+            Pointer ptr = { tree.id, 666 };
+            char_trie.insert(name, ptr);
         }
     }
     
@@ -41,7 +55,7 @@ std::ostream &format_bytes(std::ostream &os, size_t bytes) {
 }
 
 template <class Tree>
-void write_json_tree(const Tree& tree, string fn, std::ostream &log) {
+void write_json_tree(const Tree& tree, std::string fn, std::ostream &log) {
     log << "writing tree " << fn <<  "\t";
     JsonWriter json(fn);
     tree.write_json(json);
@@ -65,14 +79,15 @@ int main() {
     SearchTree search(tree);
     write_json_tree(search, "data/search.json", log);
     
-    list<TreeOfLife> subtrees;
+    std::list<TreeOfLife> subtrees;
     log << "decomposing..." << endl;
-    iterative_decomposition(tree, subtrees);
-    log << "got " << subtrees.size() << " subtrees" << endl;
+    std::map<int,int> subtree_parents = tree.iterative_decomposition(subtrees);
+    log << "got " << subtrees.size()  << " " << subtree_parents.size() << " subtrees" << endl;
+    assert(subtrees.size() == subtree_parents.size());
     
-    list<TreeOfLife>::const_iterator itr = subtrees.begin();
+    std::list<TreeOfLife>::const_iterator itr = subtrees.begin();
     for (size_t idx = 1; idx <= subtrees.size(); ++idx) {
-        string name = "data/subtree-"+to_string(idx)+".json";
+        std::string name = "data/subtree-"+to_string(idx)+".json";
         write_json_tree(*itr, name, log);
         itr++;
     }

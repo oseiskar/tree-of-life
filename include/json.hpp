@@ -2,7 +2,6 @@
 #define __JSON_HPP
 
 #include <string>
-#include <ostream>
 #include <fstream>
 #include <sstream>
 #include <memory>

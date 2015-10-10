@@ -334,6 +334,7 @@ function fetchSubtree(node) {
             alert(error.statusText);
             return;
         }
+        data = data.data;
         node.c = data.c;
         node.subtree_loaded = true;
         var wasExpanded = node.expanded;
@@ -349,6 +350,7 @@ d3.json('data/root.json', function (error, data) {
         alert(error.statusText);
         return;
     }
+    data = data.data;
     window.tol = data;
     d3.select('#loader').classed('hidden', true);
     d3.selectAll('.bar').classed('hidden', false);

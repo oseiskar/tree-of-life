@@ -1,7 +1,5 @@
-/*
- * An ad-hoc program for reading the tree of life in Newick format
- * and outputting it as overlapping JSON subtrees. 
- */
+#ifndef __TREE_HPP
+#define __TREE_HPP
 
 #include <iostream>
 #include <sstream>
@@ -10,24 +8,19 @@
 #include <list>
 #include <map>
 #include <vector>
-#include <fstream>
 #include <string>
 
 #include <json.hpp>
 
-using std::list;
-using std::vector;
-using std::string;
-using std::runtime_error;
-
-struct TreeOfLife {
-    list<TreeOfLife> children;
-    string name, ext_id;
+class TreeOfLife {
+public:
+    std::string name, ext_id;
     int id;
     int total_leaves, total_nodes;
-    int subtree_index;
     
-    typedef list<TreeOfLife>::const_iterator const_iterator;
+    std::list<TreeOfLife> children;
+    
+    typedef std::list<TreeOfLife>::const_iterator const_iterator;
     
     TreeOfLife(std::istream &newick_input) {
         int global_id = 1;
@@ -36,34 +29,81 @@ struct TreeOfLife {
     }
 
     void write_json(JsonWriter &json) const {
-        
+        std::map<int, int> parent_map;
+        generate_parent_map(parent_map);
         json.begin('{');
         
-        if (name.size() > 0) {
-            json.key("n").value(name);
-        }
+        json.key("data");
+        write_content_json(json);
         
-        if (children.size() > 0) {
-            
-            json.key("s").value(total_leaves);
-            
-            if (subtree_index > 0) {
-                json.key("subtree_index").value(subtree_index);
-            }
-            
-            json.key("c");
-            json.begin('[');
-            for (const_iterator itr = children.begin();
-                itr != children.end();
-                ++itr)
-                itr->write_json(json);
-                    
-            json.end(']');
-        }
+        json.key("parents");
+        json.begin('{');
+        for(std::map<int, int>::const_iterator itr = parent_map.begin();
+            itr != parent_map.end(); ++itr)
+            json.key(to_string(itr->first)).value(itr->second);
+        json.end('}');
+        
         json.end('}');
     }
     
+    /**
+     * An ad-hoc methods for splitting the tree of tree of life to overlapping
+     * subtrees
+     */
+    std::map<int,int> iterative_decomposition(std::list<TreeOfLife> &out) {
+        
+        const int DECOMPOSITION_ITR = 3;
+        
+        const int MAX_SUBTREE_SIZES[] = {
+            500000,
+            200000,
+            100000
+        };
+        
+        std::map<int,int> parent_map;
+        
+        typedef std::pair<TreeOfLife*,int> TreeIdPair;
+        std::vector<TreeIdPair> roots;
+        roots.push_back(TreeIdPair(this,0));
+        
+        for (int itr=0; itr < DECOMPOSITION_ITR; ++itr) {
+            const int max_subtree_size = MAX_SUBTREE_SIZES[itr];
+            
+            std::vector<TreeIdPair> new_roots;
+            
+            std::cerr << "decomposition iteration "  << itr+1 << ", "
+                      << roots.size() << " root(s)" << std::endl;
+            
+            for (size_t i = 0; i < roots.size(); ++i) {
+                const size_t old_n_out = out.size();
+                
+                TreeOfLife &cur_root = *roots[i].first;
+                const int root_id = roots[i].second;
+                
+                if (cur_root.total_nodes > max_subtree_size)
+                    cur_root.decompose(out, max_subtree_size);
+                    
+                // avoid the temptation of changing out to a vector -> nasal demons
+                std::list<TreeOfLife>::reverse_iterator root_itr = out.rbegin();
+                for (size_t i = old_n_out; i < out.size(); ++i) {
+                    TreeOfLife &new_root = *(root_itr++);
+                    const int tree_id = i+1;
+                    
+                    new_roots.push_back(TreeIdPair(&new_root, tree_id));
+                    parent_map[tree_id] = root_id;
+                }
+            }
+            
+            roots = new_roots;
+        }
+        return parent_map;
+    }
+    
+    typedef std::runtime_error error;
+    
 private:
+    int subtree_index;
+
     void init(int &global_id) {
         id = global_id++;
         total_leaves = 0;
@@ -89,7 +129,7 @@ private:
                 char c = is.get();
                 if (c == ',') continue;
                 if (c == ')') break;
-                throw runtime_error("unexpected token "+string(1, c));
+                throw error("unexpected token "+std::string(1, c));
             }
         } else {
             total_leaves = 1;
@@ -100,7 +140,7 @@ private:
         if (depth == 0 && is.peek() == ';') is.ignore();
     }
     
-    string read_newick_string(std::istream &is) {
+    std::string read_newick_string(std::istream &is) {
         std::ostringstream oss;
         while (true) {
             char c = is.peek();
@@ -108,10 +148,10 @@ private:
             oss << c;
             is.ignore();
         }
-        throw runtime_error("unexpected eof");
+        throw error("unexpected eof");
     }
     
-    void set_name(string name_) {
+    void set_name(std::string name_) {
         name = name_ = translate_characters(name_);
         
         if (name.size() == 0) return;
@@ -120,14 +160,14 @@ private:
         name = name_.substr(0,id_begin);
         ext_id = name_.substr(id_begin+1);
         
-        if (ext_id.substr(0,3) != string("ott"))
-            throw runtime_error("expected ott+number");
+        if (ext_id.substr(0,3) != std::string("ott"))
+            throw error("expected ott+number");
         
-        if (name.size() == 0) throw runtime_error("empty name");
-        if (ext_id.size() == 0) throw runtime_error("empty ext_id");
+        if (name.size() == 0) throw error("empty name");
+        if (ext_id.size() == 0) throw error("empty ext_id");
     }
     
-    string translate_characters(string str) {
+    std::string translate_characters(std::string str) {
         std::ostringstream oss;
         bool leading_ws = true;
         for (size_t i=0; i<str.size(); ++i) {
@@ -149,72 +189,70 @@ private:
         }
         return oss.str();
     }
-};
-
-void decompose_tree(TreeOfLife &root, list<TreeOfLife> &out,
+    
+    void write_content_json(JsonWriter &json) const {
+        json.begin('{');
+        
+        json.key("i").value(id);
+        if (name.size() > 0) json.key("n").value(name);
+        
+        if (children.size() > 0) {
+            
+            json.key("s").value(total_leaves);
+            
+            if (subtree_index > 0) {
+                json.key("subtree_index").value(subtree_index);
+            }
+            
+            json.key("c");
+            json.begin('[');
+            for (const_iterator itr = children.begin();
+                itr != children.end();
+                ++itr)
+                itr->write_content_json(json);
+                    
+            json.end(']');
+        }
+        json.end('}');
+    }
+    
+    void generate_parent_map(std::map<int, int>& parent_map, int parent_id = -1) const {
+        if (parent_id != -1) parent_map[id] = parent_id;
+        for (const_iterator itr = children.begin();
+            itr != children.end();
+            ++itr)
+            itr->generate_parent_map(parent_map, id);
+    }
+    
+    void decompose(std::list<TreeOfLife> &out,
                     const int max_subtree_size,
                     int overlap_depth = 0) {
-    
-    const int MAX_OVERLAP_DEPTH = 3;
-    const int MIN_SUBTREE_SIZE = 10000;
-    
-    if (overlap_depth == 0) {
-        if (root.total_nodes <= max_subtree_size &&
-            root.total_nodes >= MIN_SUBTREE_SIZE) {
         
-            overlap_depth = 1;
-            out.push_back(root); // deep copy
-            root.subtree_index = out.size();
+        const int MAX_OVERLAP_DEPTH = 3;
+        const int MIN_SUBTREE_SIZE = 10000;
+        
+        if (overlap_depth == 0) {
+            if (total_nodes <= max_subtree_size &&
+                total_nodes >= MIN_SUBTREE_SIZE) {
+            
+                overlap_depth = 1;
+                out.push_back(*this); // deep copy
+                subtree_index = out.size();
+            }
         }
-    }
-    else {
-        if (overlap_depth >= MAX_OVERLAP_DEPTH) {
-            root.children.clear();
-            return;
+        else {
+            if (overlap_depth >= MAX_OVERLAP_DEPTH) {
+                children.clear();
+                return;
+            }
+            overlap_depth++;
         }
-        overlap_depth++;
+        
+        for(std::list<TreeOfLife>::iterator itr = children.begin();
+                itr != children.end();
+                itr++) 
+            itr->decompose(out, max_subtree_size, overlap_depth);
     }
-    
-    for(list<TreeOfLife>::iterator itr = root.children.begin();
-            itr != root.children.end();
-            itr++) 
-        decompose_tree(*itr, out, max_subtree_size, overlap_depth);
-}
+};
 
-void iterative_decomposition(TreeOfLife &root, list<TreeOfLife> &out) {
-    
-    const int DECOMPOSITION_ITR = 3;
-    
-    const int MAX_SUBTREE_SIZES[] = {
-        500000,
-        200000,
-        100000
-    };
-    
-    vector<TreeOfLife*> roots;
-    roots.push_back(&root);
-    
-    for (int itr=0; itr < DECOMPOSITION_ITR; ++itr) {
-        const int max_subtree_size = MAX_SUBTREE_SIZES[itr];
-        
-        std::cerr << "decomposition iteration "  << itr+1 << ", "
-                  << roots.size() << " root(s)" << std::endl;
-        
-        size_t old_n_out = out.size();
-        
-        for (size_t i = 0; i < roots.size(); ++i) {
-            TreeOfLife &cur_root = *roots[i];
-            if (cur_root.total_nodes > max_subtree_size)
-                decompose_tree(cur_root, out, max_subtree_size);
-        }
-        
-        roots.clear();
-        
-        // avoid the temptation of changing out to a vector -> nasal demons
-        list<TreeOfLife>::reverse_iterator root_itr = out.rbegin();
-        for (size_t i = old_n_out; i < out.size(); ++i) {
-            TreeOfLife &new_root = *(root_itr++);
-            roots.push_back(&new_root);
-        }
-    }
-}
+#endif
