@@ -87,8 +87,11 @@ public:
     
     Value value;
     bool has_value;
+    int total_nodes;
     
-    StringTrie<Value>() : has_value(false) {}
+    bool empty() const { return !has_value && children.size() == 0; }
+    
+    StringTrie<Value>() : has_value(false), total_nodes(1) {}
     
     void copy_char_trie(const UnicodeTrie<Value> &char_trie) {
         value = char_trie.value;
@@ -129,6 +132,7 @@ private:
             children.push_back(KeyValuePair("", StringTrie<Value>()));
             edge << itr->first;
             add_child(itr->second, children.back(), edge);
+            total_nodes += children.back().second.total_nodes;
         }
     }
 

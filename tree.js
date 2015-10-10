@@ -345,7 +345,7 @@ function fetchSubtree(node) {
     });
 }
 
-d3.json('data/root.json', function (error, data) {
+d3.json('data/subtree-0.json', function (error, data) {
     if (error) {
         alert(error.statusText);
         return;

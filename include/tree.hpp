@@ -85,10 +85,8 @@ public:
                     
                 // avoid the temptation of changing out to a vector -> nasal demons
                 std::list<TreeOfLife>::reverse_iterator root_itr = out.rbegin();
-                for (size_t i = old_n_out; i < out.size(); ++i) {
+                for (size_t tree_id = out.size(); tree_id > old_n_out; --tree_id) {
                     TreeOfLife &new_root = *(root_itr++);
-                    const int tree_id = i+1;
-                    
                     new_roots.push_back(TreeIdPair(&new_root, tree_id));
                     parent_map[tree_id] = root_id;
                 }
@@ -96,6 +94,7 @@ public:
             
             roots = new_roots;
         }
+        out.push_front(*this);
         return parent_map;
     }
     
