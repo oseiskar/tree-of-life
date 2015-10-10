@@ -127,6 +127,9 @@ private:
 void write_subtree_index_json(const std::map<int,int> &parent_map) {
     JsonWriter json("data/subtree-index.json");
     json.begin('{');
+    
+    json.key("0").begin('{').end('}');
+    
     for(std::map<int,int>::const_iterator itr = parent_map.begin();
         itr != parent_map.end();
         ++itr)

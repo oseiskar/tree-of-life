@@ -1,5 +1,7 @@
 "use strict";
 
+var tree_of_life;
+
 var textMarginLeft = 5;
 var canvasPaddingRight = 100;
 var canvasWidth = 1600;
@@ -221,53 +223,9 @@ function updateLevels() {
 }
 
 function collapseLargeLevels(data) {
-    var maxWidth = 50;
     
-    if (data.length <= maxWidth) return data;
-    
-    function newNode(children, name) {
-        var node = {
-            artificial: true,
-            n: name,
-            c: children,
-            s: d3.sum(children, function (c) {
-                if (c.s) return c.s;
-                return 1;
-            })
-        };
-        return node;
-    }
-    
-    function isLeaf(d) { return !d.c || d.c.length === 0; }
-    
-    var leaves = data.filter(isLeaf);
-    var branches = data.filter(function (d) { return !isLeaf(d); });
-    
-    if (leaves.length > 0 && branches.length > 0) {
-        
-        if (leaves.length < maxWidth && branches.length > 0) {
-            leaves.push(newNode(branches, '...'));
-            return leaves;
-        }
-        
-        if (branches.length < maxWidth && leaves.length > 0) {
-            branches.push(newNode(leaves, '...'));
-            return branches;
-        }
-    
-        return [
-            newNode(branches, branches.length + ' branches'),
-            newNode(branches, leaves.length + ' leaves')
-        ];
-    }
-    
-    var firstHalf = data.splice(0, data.length/2);
-    
-    var n1 = newNode(firstHalf, '');
-    var n2 = newNode(data, '');
-    n1.n = '1-'+n1.s;
-    n2.n = (n1.s+1)+'-'+(n1.s+n2.s);
-    return [n1,n2];
+    return data;
+    // TODO: broken
 }
 
 function expandChildren(parent) {
@@ -326,37 +284,76 @@ function fetchSubtree(node) {
     if (node.subtree_requested) return;
     node.subtree_requested = true;
     
-    var file = 'data/subtree-' + node.subtree_index + '.json';
-    console.log('fetching '+file +' for '+node.n);
-    
-    d3.json(file, function (error, data) {
-        if (error) {
-            alert(error.statusText);
-            return;
-        }
-        data = data.data;
+    if (!downloadSubtreePath(node.subtree_index, function (data) {
+        var data = tol_subtrees[''+node.subtree_index].data;
         node.c = data.c;
         node.subtree_loaded = true;
         var wasExpanded = node.expanded;
         removeChildren(node);
         if (wasExpanded) expandChildren(node);
-        //console.log(file +' loaded');
         updateLevels();
-    });
+    })) {
+        var data = tol_subtrees[''+node.subtree_index].data;
+        node.c = data.c;
+        node.subtree_loaded = true;
+    }
 }
 
-d3.json('data/subtree-0.json', function (error, data) {
-    if (error) {
-        alert(error.statusText);
-        return;
-    }
-    data = data.data;
-    window.tol = data;
-    d3.select('#loader').classed('hidden', true);
-    d3.selectAll('.bar').classed('hidden', false);
+function expandToNode(node_id) {
+    var path = [node_id];
     
-    rootWeight = 1.0 * data.s;
-    expandChildren({c: [data], level: -1});
-    expandChildren(data);
+    while (true) {
+        node_id = tol_parent_map[''+node_id];
+        if (node_id === undefined || node_id == 1) break;
+        path.unshift(node_id);
+    }
+    //console.log(path);
+    
+    var tree = tree_of_life;
+    for (var i in path) {
+        var child_id = path[i];
+        
+        if (i < path.length-1) {
+            if (!tree.c) {
+                console.error("no children for "+tree.i);
+                break;
+            }
+            if (!tree.expanded) expandChildren(tree);
+        }
+        
+        var next_tree = null;
+        for (var j in tree.c) {
+            var c = tree.c[j];
+            if (c.i == child_id) { 
+                next_tree = c;
+                break;
+            }
+        }
+        if (!next_tree) {
+            console.error("could not find child "+child_id+" from "+tree.i);
+            break;
+        }
+        tree = next_tree;
+    }
     updateLevels();
+}
+
+getJsonWithErrorHandling('data/subtree-index.json', function (data) {
+    
+    tol_subtrees = data;
+    
+    downloadSubtree(0, function (data) {
+        
+        tree_of_life = data;
+    
+        d3.select('#loader').classed('hidden', true);
+        d3.selectAll('.bar').classed('hidden', false);
+        rootWeight = 1.0 * data.s;
+        
+        expandChildren({c: [data], level: -1});
+        expandChildren(data);
+        updateLevels();
+    });
 });
+
+

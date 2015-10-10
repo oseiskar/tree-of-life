@@ -56,8 +56,8 @@ public:
         
         const int MAX_SUBTREE_SIZES[] = {
             500000,
-            200000,
-            100000
+            100000,
+            50000
         };
         
         std::map<int,int> parent_map;
