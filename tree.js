@@ -307,19 +307,15 @@ function expandToNode(node_id) {
         if (node_id === undefined || node_id == 1) break;
         path.unshift(node_id);
     }
-    //console.log(path);
     
     var tree = tree_of_life;
     for (var i in path) {
         var child_id = path[i];
         
-        if (i < path.length-1) {
-            if (!tree.c) {
-                console.error("no children for "+tree.i);
-                break;
-            }
+        if (tree.c) {
             if (!tree.expanded) expandChildren(tree);
         }
+        else break;
         
         var next_tree = null;
         for (var j in tree.c) {

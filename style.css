@@ -1,0 +1,91 @@
+body {
+    margin: 0;
+}
+
+svg {
+    width: 100%;
+    display: block;
+    padding-top: 40px;
+    min-width: 800px;
+}
+
+#loader {
+    width: 100%;
+    text-align: center;
+    margin-top: 20%;
+}
+
+.bar {
+    line-height: 50px;
+    padding-left: 8%;
+    padding-right: 8%;
+    width: 84%;
+}
+
+.navbar {
+    position: absolute;
+    padding-top: 40px;
+    font-size: 25pt;
+}
+
+.hidden {
+    display: none;
+}
+
+.foot {
+    padding-top: 1%;
+    text-align: center;
+    font-size: 10pt;
+}
+
+.foot a {
+    color: #aaaaaa;
+}
+
+.title {
+    display: inline-block;
+    width: 80%;
+    padding: 0;
+    margin: 0;
+}
+
+.search {
+    padding-left: 15%;
+    font-size: 14pt;
+    display: inline-block;
+    vertical-align: bottom;
+}
+
+#search {
+    width: 300px;
+    font-size: 14pt;
+    border: 0;
+    border-bottom: 1px solid gray;
+}
+
+#search.not-found {
+    color: gray;
+}
+
+#results {
+    font-size: 12pt;
+    position: fixed;
+    line-height: normal;
+}
+
+.result-line {
+    display: block;
+}
+
+.info {
+    display: inline-block;
+    width: 16%;
+    text-align: right;
+    padding: 0;
+    margin: 0;
+}
+
+a {
+    text-decoration: none;
+    color: black;
+}
