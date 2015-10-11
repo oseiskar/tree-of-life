@@ -227,7 +227,7 @@ private:
                     const int max_subtree_size,
                     int overlap_depth = 0) {
         
-        const int MAX_OVERLAP_DEPTH = 3;
+        const int MAX_OVERLAP_DEPTH = 1;
         const int MIN_SUBTREE_SIZE = 10000;
         
         if (overlap_depth == 0) {
