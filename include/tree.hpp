@@ -9,6 +9,7 @@
 #include <map>
 #include <vector>
 #include <string>
+#include <assert.h>
 
 #include <json.hpp>
 
@@ -154,6 +155,7 @@ private:
         name = name_ = translate_characters(name_);
         
         if (name.size() == 0) return;
+        normalize_case(name_);
         
         int id_begin = name.find_last_of(' ');
         name = name_.substr(0,id_begin);
@@ -187,6 +189,12 @@ private:
             }
         }
         return oss.str();
+    }
+    
+    /** Capitalizes the first letter of the string (if an ASCII char) */
+    void normalize_case(std::string &str) {
+        assert(str.size() > 0);
+        if (str[0] >= 'a' && str[0] <= 'z') str[0] = str[0] + ('A'-'a');
     }
     
     void write_content_json(JsonWriter &json) const {

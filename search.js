@@ -50,6 +50,11 @@ function openResult(search_result) {
     if(!downloadSubtreePath(search_result[1], callback)) callback();
 }
 
+function capitalize(str) {
+    if (str == '') return '';
+    return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
 function displaySearchResult(query, result) {
     
     var keys = [];
@@ -119,7 +124,7 @@ function displaySearchResult(query, result) {
         
     lines.exit().remove();
     
-    lines.text(function(v) {return query+v});
+    lines.text(function(v) {return capitalize(query+v)});
 }
 
 function doSearch(query) {
@@ -152,7 +157,7 @@ search_area.on('keyup', function () {
         go_button.on('click')();
     }
     else {
-        doSearch(this.value);
+        doSearch(capitalize(this.value));
     }
 }).on('blur', function () {
     setTimeout(function() {

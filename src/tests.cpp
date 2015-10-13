@@ -163,7 +163,7 @@ void run_trie_tests() {
 void run_tree_of_life_tests() {
     
     std::istringstream newick_input(
-        "((raccoon_ott2,bear_ott3)land_ott1,(sea_lion_ott5,seal_ott6),dog_ott7);"
+        "((Raccoon_ott2,bear_ott3)land_ott1,(sEA_lion_ott5,seal_ott6),dog_ott7);"
     );
     
     TreeOfLife tol(newick_input);
@@ -178,22 +178,22 @@ void run_tree_of_life_tests() {
                 "\"c\":["
                     "{"
                         "\"i\":2,"
-                        "\"n\":\"land\","
+                        "\"n\":\"Land\","
                         "\"s\":2,"
                         "\"c\":["
-                            "{\"i\":3,\"n\":\"raccoon\"},"
-                            "{\"i\":4,\"n\":\"bear\"}"
+                            "{\"i\":3,\"n\":\"Raccoon\"},"
+                            "{\"i\":4,\"n\":\"Bear\"}"
                         "]"
                     "},"
                     "{"
                         "\"i\":5,"
                         "\"s\":2,"
                         "\"c\":["
-                            "{\"i\":6,\"n\":\"sea lion\"},"
-                            "{\"i\":7,\"n\":\"seal\"}"
+                            "{\"i\":6,\"n\":\"SEA lion\"},"
+                            "{\"i\":7,\"n\":\"Seal\"}"
                         "]"
                     "},"
-                    "{\"i\":8,\"n\":\"dog\"}"
+                    "{\"i\":8,\"n\":\"Dog\"}"
                 "]"
             "},"
             "\"parents\":{"
