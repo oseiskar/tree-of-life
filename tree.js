@@ -83,6 +83,8 @@ function updateLevels() {
             
             function toggleExpand(d) {
                 
+                clearSearchArea();
+                
                 if (d.c) {
                     if (d.expanded) {
                         removeChildren(d);
@@ -332,6 +334,11 @@ function expandToNode(node_id) {
         tree = next_tree;
     }
     updateLevels();
+}
+
+function resetTreeOfLife() {
+    removeChildren(tree_of_life);
+    expandChildren(tree_of_life);
 }
 
 getJsonWithErrorHandling('data/subtree-index.json', function (data) {

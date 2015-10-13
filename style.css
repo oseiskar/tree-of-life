@@ -44,20 +44,23 @@ svg {
 
 .title {
     display: inline-block;
-    width: 80%;
+    width: 40%;
     padding: 0;
     margin: 0;
 }
 
 .search {
-    padding-left: 15%;
+    width: 40%;
+    margin: 0;
+    padding: 0;
     font-size: 14pt;
     display: inline-block;
     vertical-align: bottom;
 }
 
 #search {
-    width: 300px;
+    display: inline-block;
+    width: 80%;
     font-size: 14pt;
     border: 0;
     border-bottom: 1px solid gray;
@@ -69,20 +72,12 @@ svg {
 
 #results {
     font-size: 12pt;
-    position: fixed;
+    position: absolute;
     line-height: normal;
 }
 
 .result-line {
     display: block;
-}
-
-.info {
-    display: inline-block;
-    width: 16%;
-    text-align: right;
-    padding: 0;
-    margin: 0;
 }
 
 a {

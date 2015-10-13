@@ -4,6 +4,11 @@
 var search_tree;
 var search_query;
 
+var search_area = d3.select('#search');
+var results_area = d3.select('#results');
+var go_button = d3.select('#goto-link');
+var go_button_action = null;
+
 fetchSearchSubtree(0, function (data) {
     search_tree = data;
 });
@@ -38,27 +43,56 @@ function searchFor(tree, prefix, callback) {
 }
 
 function openResult(search_result) {
-    function callback() { expandToNode(search_result[0]); }
+    function callback() {
+        resetTreeOfLife();
+        expandToNode(search_result[0]);
+    }
     if(!downloadSubtreePath(search_result[1], callback)) callback();
 }
 
 function displaySearchResult(query, result) {
     
-    var search_area = d3.select('#search');
     var keys = [];
+    go_button_action = null;
+    
+    function onLineClick(l) {
+        var selected = result.c[l];
+        if (selected) {
+            search_area.property('value', query+l);
+            doSearch(query+l);
+            if (selected.v) openResult(selected.v);
+        }
+    }
         
     if (result === null) {
-        search_area.classed('not-found', true);
         keys = [];
+        
     } else {
-        search_area.classed('not-found', false);
         keys = d3.keys(result.c);
-        d3.select('#goto-link')
-            .classed('hidden', !result.v)
-            .on('click', function () {openResult(result.v);});
+        
+        if (result.v) {
+            go_button_action = (function () {
+                openResult(result.v);
+                results_area.classed('hidden', true);
+            });
+        } else if (keys.length == 1) {
+            go_button_action = (function () {
+                onLineClick(keys[0]);
+            });
+        } else if (query == '') {
+            go_button_action = (function () {
+                resetTreeOfLife();
+                updateLevels();
+            });
+        }
     }
     
-    d3.select('#results').classed('hidden', query.length < 2 && keys.length > 10);
+    search_area.classed('not-found', result === null);
+    go_button.classed('hidden', go_button_action === null);
+    
+    results_area.classed('hidden', 
+        (query.length < 2 && keys.length > 10) ||
+        (keys.length == 1 && keys[0] == ''));
     
     var data = [];
     
@@ -72,7 +106,7 @@ function displaySearchResult(query, result) {
         }
     }
     
-    var lines = d3.select('#results')
+    var lines = results_area
         .selectAll('a')
         .data(data);
     
@@ -80,15 +114,16 @@ function displaySearchResult(query, result) {
         .append('a')
         .attr('class', 'result-line')
         .attr('href', 'javascript:void(0)');
+    
+    lines.on('click', function (l) { onLineClick(l); });
         
     lines.exit().remove();
     
     lines.text(function(v) {return query+v});
 }
 
-d3.select('#search').on('keyup', function (val) {
+function doSearch(query) {
     
-    var query = this.value;
     if (search_query === query) return;
     search_query = query;
     
@@ -97,4 +132,30 @@ d3.select('#search').on('keyup', function (val) {
             displaySearchResult(query, result);
         }
     });
+}
+
+function clearSearchArea() {
+    search_area.property('value', '');
+    go_button.classed('hidden', true);
+}
+
+go_button
+    .on('click', function () {
+        if (go_button_action !== null) {
+            go_button_action();
+            go_button.classed('hidden', true);
+        }
+    });
+
+search_area.on('keyup', function () {
+    if (d3.event.keyCode === 13) { // Enter pressed
+        go_button.on('click')();
+    }
+    else {
+        doSearch(this.value);
+    }
+}).on('blur', function () {
+    setTimeout(function() {
+        results_area.classed('hidden', true);
+    }, 100);
 });
