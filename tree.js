@@ -85,7 +85,11 @@ function updateLevels() {
                 
                 clearSearchArea();
                 
-                if (d.c) {
+                if (d.artificial) {
+                    rotateArtificialBranch(d);
+                    updateLevels();
+                    
+                } else if (d.c) {
                     if (d.expanded) {
                         removeChildren(d);
                     } else {
@@ -224,16 +228,95 @@ function updateLevels() {
         .attr('transform', 'scale(' + zoom + ')');
 }
 
-function collapseLargeLevels(data) {
-    
-    return data;
-    // TODO: broken
+function newArtificialBranch(children) {
+    return {
+        artificial: true,
+        n: "(" + children.length + " more)",
+        c: children,
+        s: d3.sum(children, function (c) {
+            if (c.s) return c.s;
+            return 1;
+        })
+    };
 }
 
-function expandChildren(parent) {
+var N_VISIBLE_IN_COLLAPSED = 15;
+
+function collapseLargeLevels(data, selectedNodeId) {
+    
+    data.forEach(function (d) {if (!d.s) d.s = 1;});
+    
+    if (data.length < 20) return data;
+    
+    data.sort(function (a,b) {
+        if (a.i === selectedNodeId) return -1;
+        if (b.i === selectedNodeId) return 1;
+        if (a.s != b.s) return d3.descending(a.s, b.s);
+        return d3.ascending(a.n, b.n);
+    });
+    
+    var visible = data.slice(0, N_VISIBLE_IN_COLLAPSED);
+    var collapsed = data.slice(N_VISIBLE_IN_COLLAPSED);
+    
+    visible.push(newArtificialBranch(collapsed));
+    
+    return visible;
+}
+
+function reexpandLargeLevel(data) {
+    var originalChildren = [];
+    data.forEach(function (c) {
+        if (c.artificial) originalChildren = originalChildren.concat(c.c);
+        else originalChildren.push(c);
+    });
+    return originalChildren;
+}
+
+function rotateArtificialBranch(node) {
+    
+    // quite hacky...
+    
+    var otherChildren = reexpandLargeLevel(
+        node.parent.c.filter(function (c) {
+            return c !== node;
+        })
+    );
+    
+    removeChildren(node.parent);
+    
+    if (node.index == 0) {
+        var slicePos = Math.max(node.c.length - N_VISIBLE_IN_COLLAPSED, 0);
+        
+        var nowVisible = node.c.slice(slicePos);
+        var stillCollapsed = node.c.slice(0, slicePos);
+        
+        if (stillCollapsed.length > 0)
+            nowVisible.unshift(newArtificialBranch(stillCollapsed));
+            
+        if (otherChildren.length > 0)
+            nowVisible.push(newArtificialBranch(otherChildren));
+    }
+    else {
+        var nowVisible = node.c.slice(0, N_VISIBLE_IN_COLLAPSED);
+        var stillCollapsed = node.c.slice(N_VISIBLE_IN_COLLAPSED);
+        
+        if (otherChildren.length > 0)
+            nowVisible.unshift(newArtificialBranch(otherChildren));
+        
+        if (stillCollapsed.length > 2)
+            nowVisible.push(newArtificialBranch(stillCollapsed));
+        else
+            nowVisible = nowVisible.concat(stillCollapsed);
+    }
+    
+    node.parent.c = nowVisible;
+    expandChildren(node.parent);
+}
+
+function expandChildren(parent, selectedChildId) {
     
     parent.expanded = true;
-    parent.c = collapseLargeLevels(parent.c);
+    parent.c = collapseLargeLevels(parent.c, selectedChildId);
     
     var level = parent.level + 1;
     
@@ -255,6 +338,7 @@ function expandChildren(parent) {
     
     var childCumsum = 0;
     parent.c.forEach(function (d, i) {
+        d.index = i
         if (!d.s) d.s = 1;
         d.expanded = false;
         d.pos = {};
@@ -279,6 +363,7 @@ function removeChildren(node) {
         return !isChild;
     });
     if (levelData[level].length === 0) levelData.pop();
+    node.c = reexpandLargeLevel(node.c);
 }
 
 function fetchSubtree(node) {
@@ -301,37 +386,38 @@ function fetchSubtree(node) {
     }
 }
 
-function expandToNode(node_id) {
-    var path = [node_id];
+function expandToNode(nodeId) {
+    var path = [nodeId];
     
     while (true) {
-        node_id = tol_parent_map[''+node_id];
-        if (node_id === undefined || node_id == 1) break;
-        path.unshift(node_id);
+        nodeId = tol_parent_map[''+nodeId];
+        if (nodeId === undefined || nodeId == 1) break;
+        path.unshift(nodeId);
     }
     
     var tree = tree_of_life;
     for (var i in path) {
-        var child_id = path[i];
+        var childId = path[i];
         
         if (tree.c) {
-            if (!tree.expanded) expandChildren(tree);
+            if (tree.expanded) removeChildren(tree); 
+            expandChildren(tree, childId);
         }
         else break;
         
-        var next_tree = null;
+        var nextTree = null;
         for (var j in tree.c) {
             var c = tree.c[j];
-            if (c.i == child_id) { 
-                next_tree = c;
+            if (c.i == childId) { 
+                nextTree = c;
                 break;
             }
         }
-        if (!next_tree) {
-            console.error("could not find child "+child_id+" from "+tree.i);
+        if (!nextTree) {
+            console.error("could not find child "+childId+" from "+tree.i);
             break;
         }
-        tree = next_tree;
+        tree = nextTree;
     }
     updateLevels();
 }
