@@ -19,5 +19,4 @@ bin/tests: src/tests.cpp $(SOURCE_FILES)
 	
 clean:
 	rm -f bin/main bin/test
-	rm -f data/subtree*.json
-	rm -f data/root.json
+	rm -f data/*.json
