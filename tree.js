@@ -1,5 +1,7 @@
 "use strict";
 
+var tree_of_life;
+
 var textMarginLeft = 5;
 var canvasPaddingRight = 100;
 var canvasWidth = 1600;
@@ -81,7 +83,13 @@ function updateLevels() {
             
             function toggleExpand(d) {
                 
-                if (d.c) {
+                clearSearchArea();
+                
+                if (d.artificial) {
+                    rotateArtificialBranch(d);
+                    updateLevels();
+                    
+                } else if (d.c) {
                     if (d.expanded) {
                         removeChildren(d);
                     } else {
@@ -220,60 +228,95 @@ function updateLevels() {
         .attr('transform', 'scale(' + zoom + ')');
 }
 
-function collapseLargeLevels(data) {
-    var maxWidth = 50;
-    
-    if (data.length <= maxWidth) return data;
-    
-    function newNode(children, name) {
-        var node = {
-            artificial: true,
-            n: name,
-            c: children,
-            s: d3.sum(children, function (c) {
-                if (c.s) return c.s;
-                return 1;
-            })
-        };
-        return node;
-    }
-    
-    function isLeaf(d) { return !d.c || d.c.length === 0; }
-    
-    var leaves = data.filter(isLeaf);
-    var branches = data.filter(function (d) { return !isLeaf(d); });
-    
-    if (leaves.length > 0 && branches.length > 0) {
-        
-        if (leaves.length < maxWidth && branches.length > 0) {
-            leaves.push(newNode(branches, '...'));
-            return leaves;
-        }
-        
-        if (branches.length < maxWidth && leaves.length > 0) {
-            branches.push(newNode(leaves, '...'));
-            return branches;
-        }
-    
-        return [
-            newNode(branches, branches.length + ' branches'),
-            newNode(branches, leaves.length + ' leaves')
-        ];
-    }
-    
-    var firstHalf = data.splice(0, data.length/2);
-    
-    var n1 = newNode(firstHalf, '');
-    var n2 = newNode(data, '');
-    n1.n = '1-'+n1.s;
-    n2.n = (n1.s+1)+'-'+(n1.s+n2.s);
-    return [n1,n2];
+function newArtificialBranch(children) {
+    return {
+        artificial: true,
+        n: "(" + children.length + " more)",
+        c: children,
+        s: d3.sum(children, function (c) {
+            if (c.s) return c.s;
+            return 1;
+        })
+    };
 }
 
-function expandChildren(parent) {
+var N_VISIBLE_IN_COLLAPSED = 15;
+
+function collapseLargeLevels(data, selectedNodeId) {
+    
+    data.forEach(function (d) {if (!d.s) d.s = 1;});
+    
+    if (data.length < 20) return data;
+    
+    data.sort(function (a,b) {
+        if (a.i === selectedNodeId) return -1;
+        if (b.i === selectedNodeId) return 1;
+        if (a.s != b.s) return d3.descending(a.s, b.s);
+        return d3.ascending(a.n, b.n);
+    });
+    
+    var visible = data.slice(0, N_VISIBLE_IN_COLLAPSED);
+    var collapsed = data.slice(N_VISIBLE_IN_COLLAPSED);
+    
+    visible.push(newArtificialBranch(collapsed));
+    
+    return visible;
+}
+
+function reexpandLargeLevel(data) {
+    var originalChildren = [];
+    data.forEach(function (c) {
+        if (c.artificial) originalChildren = originalChildren.concat(c.c);
+        else originalChildren.push(c);
+    });
+    return originalChildren;
+}
+
+function rotateArtificialBranch(node) {
+    
+    // quite hacky...
+    
+    var otherChildren = reexpandLargeLevel(
+        node.parent.c.filter(function (c) {
+            return c !== node;
+        })
+    );
+    
+    removeChildren(node.parent);
+    
+    if (node.index == 0) {
+        var slicePos = Math.max(node.c.length - N_VISIBLE_IN_COLLAPSED, 0);
+        
+        var nowVisible = node.c.slice(slicePos);
+        var stillCollapsed = node.c.slice(0, slicePos);
+        
+        if (stillCollapsed.length > 0)
+            nowVisible.unshift(newArtificialBranch(stillCollapsed));
+            
+        if (otherChildren.length > 0)
+            nowVisible.push(newArtificialBranch(otherChildren));
+    }
+    else {
+        var nowVisible = node.c.slice(0, N_VISIBLE_IN_COLLAPSED);
+        var stillCollapsed = node.c.slice(N_VISIBLE_IN_COLLAPSED);
+        
+        if (otherChildren.length > 0)
+            nowVisible.unshift(newArtificialBranch(otherChildren));
+        
+        if (stillCollapsed.length > 2)
+            nowVisible.push(newArtificialBranch(stillCollapsed));
+        else
+            nowVisible = nowVisible.concat(stillCollapsed);
+    }
+    
+    node.parent.c = nowVisible;
+    expandChildren(node.parent);
+}
+
+function expandChildren(parent, selectedChildId) {
     
     parent.expanded = true;
-    parent.c = collapseLargeLevels(parent.c);
+    parent.c = collapseLargeLevels(parent.c, selectedChildId);
     
     var level = parent.level + 1;
     
@@ -295,6 +338,7 @@ function expandChildren(parent) {
     
     var childCumsum = 0;
     parent.c.forEach(function (d, i) {
+        d.index = i
         if (!d.s) d.s = 1;
         d.expanded = false;
         d.pos = {};
@@ -319,6 +363,7 @@ function removeChildren(node) {
         return !isChild;
     });
     if (levelData[level].length === 0) levelData.pop();
+    node.c = reexpandLargeLevel(node.c);
 }
 
 function fetchSubtree(node) {
@@ -326,35 +371,78 @@ function fetchSubtree(node) {
     if (node.subtree_requested) return;
     node.subtree_requested = true;
     
-    var file = 'data/subtree-' + node.subtree_index + '.json';
-    console.log('fetching '+file +' for '+node.n);
-    
-    d3.json(file, function (error, data) {
-        if (error) {
-            alert(error.statusText);
-            return;
-        }
+    if (!downloadSubtreePath(node.subtree_index, function (data) {
+        var data = tol_subtrees[''+node.subtree_index].data;
         node.c = data.c;
         node.subtree_loaded = true;
         var wasExpanded = node.expanded;
         removeChildren(node);
         if (wasExpanded) expandChildren(node);
-        //console.log(file +' loaded');
         updateLevels();
-    });
+    })) {
+        var data = tol_subtrees[''+node.subtree_index].data;
+        node.c = data.c;
+        node.subtree_loaded = true;
+    }
 }
 
-d3.json('data/root.json', function (error, data) {
-    if (error) {
-        alert(error.statusText);
-        return;
-    }
-    window.tol = data;
-    d3.select('#loader').classed('hidden', true);
-    d3.selectAll('.bar').classed('hidden', false);
+function expandToNode(nodeId) {
+    var path = [nodeId];
     
-    rootWeight = 1.0 * data.s;
-    expandChildren({c: [data], level: -1});
-    expandChildren(data);
+    while (true) {
+        nodeId = tol_parent_map[''+nodeId];
+        if (nodeId === undefined || nodeId == 1) break;
+        path.unshift(nodeId);
+    }
+    
+    var tree = tree_of_life;
+    for (var i in path) {
+        var childId = path[i];
+        
+        if (tree.c) {
+            if (tree.expanded) removeChildren(tree); 
+            expandChildren(tree, childId);
+        }
+        else break;
+        
+        var nextTree = null;
+        for (var j in tree.c) {
+            var c = tree.c[j];
+            if (c.i == childId) { 
+                nextTree = c;
+                break;
+            }
+        }
+        if (!nextTree) {
+            console.error("could not find child "+childId+" from "+tree.i);
+            break;
+        }
+        tree = nextTree;
+    }
     updateLevels();
+}
+
+function resetTreeOfLife() {
+    removeChildren(tree_of_life);
+    expandChildren(tree_of_life);
+}
+
+getJsonWithErrorHandling('data/subtree-index.json', function (data) {
+    
+    tol_subtrees = data;
+    
+    downloadSubtree(0, function (data) {
+        
+        tree_of_life = data;
+    
+        d3.select('#loader').classed('hidden', true);
+        d3.selectAll('.bar').classed('hidden', false);
+        rootWeight = 1.0 * data.s;
+        
+        expandChildren({c: [data], level: -1});
+        expandChildren(data);
+        updateLevels();
+    });
 });
+
+
