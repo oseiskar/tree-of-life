@@ -2,11 +2,27 @@ body {
     margin: 0;
 }
 
-svg {
+.svg-container {
     width: 100%;
-    display: block;
-    padding-top: 40px;
     min-width: 800px;
+    height: 0;
+    padding-top: 43%; /* ~ 700 / 1600 */
+    position: relative;
+}
+
+svg {
+    display: block;
+    top: 0;
+    left: 0;
+    position: absolute;
+}
+
+svg text {
+    cursor: pointer;
+}
+
+svg path {
+    cursor: pointer;
 }
 
 #loader {
@@ -20,16 +36,20 @@ svg {
     padding-left: 8%;
     padding-right: 8%;
     width: 84%;
+    min-width: 800px;
 }
 
 .navbar {
-    position: absolute;
     padding-top: 40px;
     font-size: 25pt;
 }
 
 .hidden {
     display: none;
+}
+
+.selected-node {
+    font-weight: bold;
 }
 
 .foot {
