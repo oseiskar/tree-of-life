@@ -32,6 +32,10 @@ svg {
     display: none;
 }
 
+.selected-node {
+    font-weight: bold;
+}
+
 .foot {
     padding-top: 1%;
     text-align: center;

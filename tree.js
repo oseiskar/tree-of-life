@@ -18,7 +18,7 @@ var d3root = d3.select('#tree')
     .append('g');
     
 var levelData = [];
-var nodeId = 0;
+var nodeId = 0, selectedNodeId = false;
 
 var svgPath = {
     p: function (x,y) { return x + ',' + y + ' '; },
@@ -84,6 +84,7 @@ function updateLevels() {
             function toggleExpand(d) {
                 
                 clearSearchArea();
+                selectedNodeId = false;
                 
                 if (d.artificial) {
                     rotateArtificialBranch(d);
@@ -149,7 +150,7 @@ function updateLevels() {
             
             nodes.select('text')
                 .on('click', toggleExpand)
-                .attr('style', function(d) {
+                .classed('hidden', function(d) {
                     if (lastLevel ||
                         (d.n && !d.artificial && (
                             d.s > rootWeight * 0.02 ||
@@ -157,9 +158,12 @@ function updateLevels() {
                         )))
                     {
                         anyNamed = true;
-                        return '';
+                        return false;
                     }
-                    return 'display: none';
+                    return true;
+                })
+                .classed('selected-node', function (d) {
+                    return d.i === selectedNodeId;
                 })
                 .attr('font-size', function (d) {
                     if (!d.expanded) {
@@ -242,7 +246,7 @@ function newArtificialBranch(children) {
 
 var N_VISIBLE_IN_COLLAPSED = 15;
 
-function collapseLargeLevels(data, selectedNodeId) {
+function collapseLargeLevels(data) {
     
     data.forEach(function (d) {if (!d.s) d.s = 1;});
     
@@ -313,10 +317,10 @@ function rotateArtificialBranch(node) {
     expandChildren(node.parent);
 }
 
-function expandChildren(parent, selectedChildId) {
+function expandChildren(parent) {
     
     parent.expanded = true;
-    parent.c = collapseLargeLevels(parent.c, selectedChildId);
+    parent.c = collapseLargeLevels(parent.c);
     
     var level = parent.level + 1;
     
@@ -399,9 +403,10 @@ function expandToNode(nodeId) {
     for (var i in path) {
         var childId = path[i];
         
+        selectedNodeId = childId;
         if (tree.c) {
             if (tree.expanded) removeChildren(tree); 
-            expandChildren(tree, childId);
+            expandChildren(tree);
         }
         else break;
         
