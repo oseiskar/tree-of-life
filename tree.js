@@ -173,6 +173,7 @@ function updateLevels() {
                 .attr('transform', function(d) {
                     if (lastLevel) { return ''; }
                     var angle = Math.min(20+levelData.length,90);
+                    if (d.pos.cy < 0) angle = -angle;
                     var x = d.pos.cx + textMarginLeft;
                     return 'rotate('+angle+','+x+','+d.pos.cy+')';
                 });
