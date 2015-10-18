@@ -2,11 +2,6 @@
 
 var tree_of_life;
 
-var textMarginLeft = 5;
-var canvasPaddingRight = 100;
-var canvasWidth = 1600;
-var canvasHeight = 700;
-
 var relX = d3.scale.linear()
     .domain([0, 1])
     .range([0, canvasWidth - canvasPaddingRight]);
@@ -105,8 +100,8 @@ function updateLevels() {
             var levelWeight = 0;
             var weightCumsum = data.map(function (d) {
                 var cur = levelWeight;
-                levelWeight += d.s;
-                if (depth > 0) centerY += d.parent.pos.cy * d.s;
+                levelWeight += d.scaledWeight;
+                if (depth > 0) centerY += d.parent.pos.cy * d.scaledWeight;
                 return cur;
             });
             
@@ -131,7 +126,7 @@ function updateLevels() {
                 
                 minY = Math.min(minY, y);
                 
-                var w = d.s / rootWeight * rootHeight;
+                var w = d.scaledWeight / rootWeight * rootHeight;
                 d.lineOnly = w < 1.0 || d.s == 1;
                 
                 stashPosition(d.pos, i, 'y', y, w);
@@ -192,12 +187,12 @@ function updateLevels() {
                 .on('click', toggleExpand)
                 .attr('style', function(d) {
                     if (d.lineOnly) {
-                        return 'fill: none; stroke: gray; stroke-opacity: 0.3; stroke-width: 1.0';
+                        return SCALE_LEVEL_STYLES.line[d.scaleLevel];
                     }
-                    if (!d.expanded) {
-                        return 'fill: url(#grad1)';
+                    if (!d.expanded && d.scaledWeight > rootWeight * 0.01) {
+                        return SCALE_LEVEL_STYLES.gradient[d.scaleLevel];
                     } else {
-                        return 'fill: gray; fill-opacity: 0.3';
+                        return SCALE_LEVEL_STYLES.solid[d.scaleLevel];
                     }
                 })
                 .transition()
@@ -243,8 +238,6 @@ function newArtificialBranch(children) {
         })
     };
 }
-
-var N_VISIBLE_IN_COLLAPSED = 15;
 
 function collapseLargeLevels(data) {
     
@@ -340,6 +333,11 @@ function expandChildren(parent) {
         }
     }
     
+    if (!parent.scaleLevel) parent.scaleLevel = 0;
+    var nextScaleLevel = parent.scaleLevel;
+    if (nextScaleLevel < RESCALE_AT.length-1 &&
+        parent.s < RESCALE_AT[nextScaleLevel+1]*rootWeight) nextScaleLevel++;
+    
     var childCumsum = 0;
     parent.c.forEach(function (d, i) {
         d.index = i
@@ -351,6 +349,8 @@ function expandChildren(parent) {
         d.nodeId = nodeId;
         d.childCumsum = childCumsum;
         d.level = level;
+        d.scaleLevel = nextScaleLevel;
+        d.scaledWeight = d.s / RESCALE_AT[d.scaleLevel];
         childCumsum += d.s; 
         nodeId++;
         curLevel.splice(insertPos+i, 0, d);
