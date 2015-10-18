@@ -1,3 +1,5 @@
+"use strict";
+
 /* at which proportion of the full tree weight to zoom / rescale the
  * width of the branches */
 var RESCALE_AT = [1.0, 1e-3];
