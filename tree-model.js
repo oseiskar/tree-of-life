@@ -130,19 +130,19 @@ TreeOfLifeModel.prototype.collapseLargeLevels = function(data) {
 }
 
 TreeOfLifeModel.prototype.reexpandLargeLevel = function(data) {
-    var originalChildren = [];
+    var original_children = [];
     data.forEach(function (c) {
-        if (c.artificial) originalChildren = originalChildren.concat(c.c);
-        else originalChildren.push(c);
+        if (c.artificial) original_children = original_children.concat(c.c);
+        else original_children.push(c);
     });
-    return originalChildren;
+    return original_children;
 }
 
 TreeOfLifeModel.prototype.rotateArtificialBranch = function(node) {
     
     // quite hacky...
     
-    var otherChildren = this.reexpandLargeLevel(
+    var other_children = this.reexpandLargeLevel(
         node.parent.c.filter(function (c) {
             return c !== node;
         })
@@ -151,31 +151,31 @@ TreeOfLifeModel.prototype.rotateArtificialBranch = function(node) {
     this.removeChildren(node.parent);
     
     if (node.index == 0) {
-        var slicePos = Math.max(node.c.length - this.N_VISIBLE_IN_COLLAPSED, 0);
+        var slice_pos = Math.max(node.c.length - this.N_VISIBLE_IN_COLLAPSED, 0);
         
-        var nowVisible = node.c.slice(slicePos);
-        var stillCollapsed = node.c.slice(0, slicePos);
+        var now_visible = node.c.slice(slice_pos);
+        var still_collapsed = node.c.slice(0, slice_pos);
         
-        if (stillCollapsed.length > 0)
-            nowVisible.unshift(this.newArtificialBranch(stillCollapsed));
+        if (still_collapsed.length > 0)
+            now_visible.unshift(this.newArtificialBranch(still_collapsed));
             
-        if (otherChildren.length > 0)
-            nowVisible.push(this.newArtificialBranch(otherChildren));
+        if (other_children.length > 0)
+            now_visible.push(this.newArtificialBranch(other_children));
     }
     else {
-        var nowVisible = node.c.slice(0, this.N_VISIBLE_IN_COLLAPSED);
-        var stillCollapsed = node.c.slice(this.N_VISIBLE_IN_COLLAPSED);
+        var now_visible = node.c.slice(0, this.N_VISIBLE_IN_COLLAPSED);
+        var still_collapsed = node.c.slice(this.N_VISIBLE_IN_COLLAPSED);
         
-        if (otherChildren.length > 0)
-            nowVisible.unshift(this.newArtificialBranch(otherChildren));
+        if (other_children.length > 0)
+            now_visible.unshift(this.newArtificialBranch(other_children));
         
-        if (stillCollapsed.length > 2)
-            nowVisible.push(this.newArtificialBranch(stillCollapsed));
+        if (still_collapsed.length > 2)
+            now_visible.push(this.newArtificialBranch(still_collapsed));
         else
-            nowVisible = nowVisible.concat(stillCollapsed);
+            now_visible = now_visible.concat(still_collapsed);
     }
     
-    node.parent.c = nowVisible;
+    node.parent.c = now_visible;
     this.expandChildren(node.parent);
 }
 
@@ -192,40 +192,44 @@ TreeOfLifeModel.prototype.expandChildren = function(parent, callback) {
         this.levels.push([]);
     }
     
-    var curLevel = this.levels[level];
+    var cur_level = this.levels[level];
     
-    var insertPos = 0;
+    var insert_pos = 0;
     if (level > 0) {
-        while (insertPos < curLevel.length &&
-               curLevel[insertPos].parent.pos.index < parent.pos.index) {
-            insertPos++;
+        while (insert_pos < cur_level.length &&
+               cur_level[insert_pos].parent.visual.index < parent.visual.index) {
+            insert_pos++;
         }
     }
     
-    if (!parent.scaleLevel) parent.scaleLevel = 0;
-    var next_scale = parent.scaleLevel;
+    if (!parent.scale_level) parent.scale_level = 0;
+    var next_scale = parent.scale_level;
     if (next_scale < this.RESCALE_AT.length-1 &&
         parent.s < this.RESCALE_AT[next_scale+1]*this.root_weight) next_scale++;
     
-    var childCumsum = 0;
+    var child_cumsum = 0;
     var that = this;
     parent.c.forEach(function (d, i) {
         d.index = i
         if (!d.s) d.s = 1;
         d.expanded = false;
-        d.pos = {};
-        d.parentLinkPos = {};
         d.parent = parent;
-        d.visual_id = that.visible_node_counter;
-        d.childCumsum = childCumsum;
+        d.child_cumsum = child_cumsum;
         d.level = level;
-        d.scaleLevel = next_scale;
-        d.scaledWeight = d.s / that.RESCALE_AT[d.scaleLevel];
-        childCumsum += d.s; 
+        d.scale_level = next_scale;
+        d.scaled_weight = d.s / that.RESCALE_AT[d.scale_level];
+        
+        d.visual = {
+            id: that.visible_node_counter,
+            parent_link: {}
+        };
+        
+        child_cumsum += d.s; 
         that.visible_node_counter++;
-        curLevel.splice(insertPos+i, 0, d);
+        
+        cur_level.splice(insert_pos+i, 0, d);
     });
-    parent.childSum = childCumsum;
+    parent.child_sum = child_cumsum;
 }
 
 TreeOfLifeModel.prototype.removeChildren = function(node) {
