@@ -163,7 +163,7 @@ void run_trie_tests() {
 void run_tree_of_life_tests() {
     
     std::istringstream newick_input(
-        "((Raccoon_ott2,bear_ott3)land_ott1,(sEA_lion_ott5,seal_ott6),dog_ott7);"
+        "((Raccoon_ott2,'_bear_ott3')land_ott1,('''sEA''_lion_ott5',seal_ott6),'(dog),;_ott7');"
     );
     
     TreeOfLife tol(newick_input);
@@ -189,11 +189,11 @@ void run_tree_of_life_tests() {
                         "\"i\":5,"
                         "\"s\":2,"
                         "\"c\":["
-                            "{\"i\":6,\"n\":\"sEA lion\"},"
+                            "{\"i\":6,\"n\":\"'sEA' lion\"},"
                             "{\"i\":7,\"n\":\"seal\"}"
                         "]"
                     "},"
-                    "{\"i\":8,\"n\":\"dog\"}"
+                    "{\"i\":8,\"n\":\"(dog),;\"}"
                 "]"
             "},"
             "\"parents\":{"

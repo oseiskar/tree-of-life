@@ -142,9 +142,26 @@ private:
     
     std::string read_newick_string(std::istream &is) {
         std::ostringstream oss;
+        bool quoted = is.peek() == '\'';
+        bool last_quote = false;
+        
+        if (quoted) is.ignore();
         while (true) {
             char c = is.peek();
-            if (c == ',' || c == ')' || c == ';' || is.eof()) return oss.str();
+            
+            if (c == '\'') {
+                if (!quoted) throw error("unexpected quote after "+oss.str());
+                if (!last_quote) {
+                    last_quote = true;
+                    is.ignore();
+                    continue;
+                }
+                last_quote = false;
+            }
+            if (((last_quote || !quoted) && (c == ',' || c == ')' || c == ';')) || is.eof()) return oss.str();
+            else if (last_quote) throw error("expected quote after "+oss.str());
+            
+            if (c == '_') c = ' ';
             oss << c;
             is.ignore();
         }
@@ -152,7 +169,9 @@ private:
     }
     
     void set_name(std::string name_) {
-        name = name_ = translate_characters(name_);
+        // drop leading whitespace
+        while(name_.size() > 0 && name_[0] == ' ') name_ = name_.substr(1);
+        name = name_;
         
         if (name.size() == 0) return;
         
@@ -165,29 +184,6 @@ private:
         
         if (name.size() == 0) throw error("empty name");
         if (ext_id.size() == 0) throw error("empty ext_id");
-    }
-    
-    std::string translate_characters(std::string str) {
-        std::ostringstream oss;
-        bool leading_ws = true;
-        for (size_t i=0; i<str.size(); ++i) {
-            char c = str[i];
-            switch(c) {
-            case ' ':
-            case '_':
-                // convert underscores to spaces and drop leading space
-                if (!leading_ws) oss << ' '; 
-                break;
-            case '\'':
-                // drop all single quotes
-                break;
-            default:
-                leading_ws = false;
-                oss << c;
-                break;
-            }
-        }
-        return oss.str();
     }
     
     void write_content_json(JsonWriter &json) const {
