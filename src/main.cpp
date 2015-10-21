@@ -67,6 +67,7 @@ private:
     void visit(const TreeOfLife &tree, int subtree_id) {
         if (tree.name.size() > 0) {
             std::string name = tree.name;
+            normalize_case(name);
             
             Pointer value = { tree.id, subtree_id };
             const Pointer* existing = char_trie.lookup(name);
@@ -121,6 +122,12 @@ private:
         }
         
         root_json.end('}');
+    }
+    
+    /** Capitalizes the first letter of the string (if an ASCII char) */
+    void normalize_case(std::string &str) {
+        assert(str.size() > 0);
+        if (str[0] >= 'a' && str[0] <= 'z') str[0] = str[0] + ('A'-'a');
     }
 };
 
