@@ -203,13 +203,13 @@ private:
         json.key("i").value(id);
         if (name.size() > 0) json.key("n").value(name);
         
+        if (total_leaves > 1) json.key("s").value(total_leaves);
+            
+        if (subtree_index > 0) {
+            json.key("subtree_index").value(subtree_index);
+        }
+        
         if (children.size() > 0) {
-            
-            json.key("s").value(total_leaves);
-            
-            if (subtree_index > 0) {
-                json.key("subtree_index").value(subtree_index);
-            }
             
             json.key("c");
             json.begin('[');
