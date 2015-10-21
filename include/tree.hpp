@@ -142,9 +142,26 @@ private:
     
     std::string read_newick_string(std::istream &is) {
         std::ostringstream oss;
+        bool quoted = is.peek() == '\'';
+        bool last_quote = false;
+        
+        if (quoted) is.ignore();
         while (true) {
             char c = is.peek();
-            if (c == ',' || c == ')' || c == ';' || is.eof()) return oss.str();
+            
+            if (c == '\'') {
+                if (!quoted) throw error("unexpected quote after "+oss.str());
+                if (!last_quote) {
+                    last_quote = true;
+                    is.ignore();
+                    continue;
+                }
+                last_quote = false;
+            }
+            if (((last_quote || !quoted) && (c == ',' || c == ')' || c == ';')) || is.eof()) return oss.str();
+            else if (last_quote) throw error("expected quote after "+oss.str());
+            
+            if (c == '_') c = ' ';
             oss << c;
             is.ignore();
         }
@@ -152,10 +169,11 @@ private:
     }
     
     void set_name(std::string name_) {
-        name = name_ = translate_characters(name_);
+        // drop leading whitespace
+        while(name_.size() > 0 && name_[0] == ' ') name_ = name_.substr(1);
+        name = name_;
         
         if (name.size() == 0) return;
-        normalize_case(name_);
         
         int id_begin = name.find_last_of(' ');
         name = name_.substr(0,id_begin);
@@ -168,48 +186,19 @@ private:
         if (ext_id.size() == 0) throw error("empty ext_id");
     }
     
-    std::string translate_characters(std::string str) {
-        std::ostringstream oss;
-        bool leading_ws = true;
-        for (size_t i=0; i<str.size(); ++i) {
-            char c = str[i];
-            switch(c) {
-            case ' ':
-            case '_':
-                // convert underscores to spaces and drop leading space
-                if (!leading_ws) oss << ' '; 
-                break;
-            case '\'':
-                // drop all single quotes
-                break;
-            default:
-                leading_ws = false;
-                oss << c;
-                break;
-            }
-        }
-        return oss.str();
-    }
-    
-    /** Capitalizes the first letter of the string (if an ASCII char) */
-    void normalize_case(std::string &str) {
-        assert(str.size() > 0);
-        if (str[0] >= 'a' && str[0] <= 'z') str[0] = str[0] + ('A'-'a');
-    }
-    
     void write_content_json(JsonWriter &json) const {
         json.begin('{');
         
         json.key("i").value(id);
         if (name.size() > 0) json.key("n").value(name);
         
+        if (total_leaves > 1) json.key("s").value(total_leaves);
+            
+        if (subtree_index > 0) {
+            json.key("subtree_index").value(subtree_index);
+        }
+        
         if (children.size() > 0) {
-            
-            json.key("s").value(total_leaves);
-            
-            if (subtree_index > 0) {
-                json.key("subtree_index").value(subtree_index);
-            }
             
             json.key("c");
             json.begin('[');
