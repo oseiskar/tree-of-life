@@ -54,7 +54,7 @@ Style.prototype.defineStylesForPrimitives = function() {
 Style.prototype.defineGradients = function (d3_svg_el) {
         
     var that = this;
-    var gradients = d3_svg_el.select('defs')
+    var gradients = d3_svg_el.append('defs')
         .selectAll('linearGradient')
         .data(d3.range(this.N_SCALE_LEVELS))
         .enter()
@@ -129,20 +129,47 @@ function TreeOfLifeView() {
 
 TreeOfLifeView.prototype.render = function () {
     
-    var levels = this.d3root.selectAll('g.level')
-        .data(this.model.levels);
-    
-    levels.enter()
-        .append('g')
-        .attr('class', 'level');
-    
-    levels.exit().remove();
-    
     this.computeVisualPositions();
     
     var view = this;
-    levels.each(function(data, depth) {
-        view.renderLevel(d3.select(this), data, depth);
+    
+    var layers = this.d3root.selectAll('g.layer').data([
+        
+        // Bottom layer: paths / edges
+        function (nodes, depth) {
+            if (depth > 0) view.renderPaths(nodes);
+        },
+        
+        // Top layer: texts
+        function (nodes, depth) {
+            var last_level = depth == view.model.levels.length - 1;
+            view.renderTexts(nodes, last_level);
+        }
+    ]);
+    
+    layers.enter().append('g').attr('class', 'layer');
+    
+    layers.each(function (func) {
+        
+        var levels = d3.select(this).selectAll('g.level')
+            .data(view.model.levels);
+        
+        levels.enter()
+            .append('g')
+            .attr('class', 'level');
+        
+        levels.exit().remove();
+        
+        levels.each(function(data, depth) {
+            
+            var nodes = d3.select(this)
+                .selectAll('g')
+                .data(data, function (d) { return d.visual.id; });
+            
+            func(nodes, depth);
+            
+            nodes.exit().remove();
+        });
     });
     
     var zoom = Math.min((view.style.canvas.height*0.5) / Math.max(-this.min_y, this.max_y), 1.0);
@@ -289,38 +316,19 @@ TreeOfLifeView.prototype.computeLevelVisualPositions = function (data, depth) {
     });
 }
 
-TreeOfLifeView.prototype.renderLevel = function (d3_selector, data, depth) {
+TreeOfLifeView.prototype.renderTexts = function(nodes, last_level) {
     
-    var last_level = depth == this.model.levels.length - 1;
-    
-    var nodes = d3_selector
-        .selectAll('g')
-        .data(data, function (d) { return d.visual.id; });
+    var model = this.model;
+    var style = this.style;
     
     var new_nodes = nodes.enter()
         .append('g');
-    
-    if (depth > 0) { new_nodes.append('path'); }
     
     new_nodes.append('text')
         .text(function(d) {
             if (d.n) return d.n;
             return '...';
         });
-        
-    this.renderTexts(nodes, last_level);
-    
-    if (depth === 0) return;
-    
-    this.renderPaths(nodes);
-    
-    nodes.exit().remove();
-}
-
-TreeOfLifeView.prototype.renderTexts = function(nodes, last_level) {
-    
-    var model = this.model;
-    var style = this.style;
     
     nodes.select('text')
         .on('click', this.onClickNode)
@@ -343,6 +351,10 @@ TreeOfLifeView.prototype.renderPaths = function (nodes) {
     
     var model = this.model;
     var style = this.style;
+    
+    nodes.enter()
+        .append('g')
+        .append('path');
     
     nodes.select('path')
         .on('click', this.onClickNode)
