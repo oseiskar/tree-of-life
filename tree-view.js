@@ -94,13 +94,19 @@ function TreeOfLifeView() {
     });
     
     this.expandNodeCallback = function (node_id, subtree_id) {
+        
         var model = view.model;
         function callback() {
             model.resetTreeOfLife();
-            model.expandToNode(node_id);
+            if (node_id !== null) model.expandToNode(node_id);
             view.render();
         }
-        if (model.backend.fetchWithParents(subtree_id, callback)) callback();
+        
+        if (node_id === null) callback();
+        else {
+            if (model.backend.fetchWithParents(subtree_id, callback))
+                callback();
+        }
     }
     
     this.style = new Style(this.model.RESCALE_AT);

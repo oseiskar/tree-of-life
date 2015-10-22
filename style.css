@@ -94,10 +94,12 @@ svg path {
     font-size: 12pt;
     position: absolute;
     line-height: normal;
+    z-index: 100;
 }
 
 .result-line {
     display: block;
+    z-index: 110;
 }
 
 a {
