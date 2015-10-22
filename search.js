@@ -147,8 +147,7 @@ function SearchView(result_callback) {
                 });
             } else if (query == '') {
                 go_button_action = (function () {
-                    resetTreeOfLife();
-                    updateLevels();
+                    result_callback(null);
                 });
             }
         }
@@ -206,7 +205,7 @@ function SearchView(result_callback) {
     }).on('blur', function () {
         setTimeout(function() {
             results_area.classed('hidden', true);
-        }, 100);
+        }, 200);
     });
 }
 
