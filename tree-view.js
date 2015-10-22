@@ -16,8 +16,8 @@ var SvgPath = {
 function Style() {    
     
     this.SCALE_LEVELS = {
-        color: ['#408040', '#8080c0'],
-        opacity: ['0.3', '0.3']
+        color: ['#c5d9c5', '#d8d8ec'],
+        opacity: ['1.0', '1.0']
     }
     
     this.N_SCALE_LEVELS = this.SCALE_LEVELS.color.length;
@@ -37,13 +37,17 @@ Style.prototype.defineStylesForPrimitives = function() {
     var scale_levels = d3.range(this.N_SCALE_LEVELS);
     var that = this;
     this.SCALE_LEVELS.solid = scale_levels.map(function (_, i) {
-        return 'fill: ' + that.SCALE_LEVELS.color[i] + '; ' +
-               'fill-opacity: ' + that.SCALE_LEVELS.opacity[i];
+        var s = 'fill: ' + that.SCALE_LEVELS.color[i];
+        var op = that.SCALE_LEVELS.opacity[i];
+        if (parseFloat(op) < 1.0) s += '; fill-opacity: ' + op;
+        return s;
     });
 
     this.SCALE_LEVELS.line = scale_levels.map(function (_, i) {
-        return 'fill: none; stroke: ' + that.SCALE_LEVELS.color[i] + '; ' +
-               'stroke-opacity: ' + that.SCALE_LEVELS.opacity[i];
+        var s = 'fill: none; stroke: ' + that.SCALE_LEVELS.color[i];
+        var op = that.SCALE_LEVELS.opacity[i];
+        if (parseFloat(op) < 1.0) s += '; stroke-opacity: ' + op;
+        return s;
     });
 
     this.SCALE_LEVELS.gradient = scale_levels.map(function (_, i) {
@@ -54,7 +58,7 @@ Style.prototype.defineStylesForPrimitives = function() {
 Style.prototype.defineGradients = function (d3_svg_el) {
         
     var that = this;
-    var gradients = d3_svg_el.select('defs')
+    var gradients = d3_svg_el.append('defs')
         .selectAll('linearGradient')
         .data(d3.range(this.N_SCALE_LEVELS))
         .enter()
@@ -129,20 +133,47 @@ function TreeOfLifeView() {
 
 TreeOfLifeView.prototype.render = function () {
     
-    var levels = this.d3root.selectAll('g.level')
-        .data(this.model.levels);
-    
-    levels.enter()
-        .append('g')
-        .attr('class', 'level');
-    
-    levels.exit().remove();
-    
     this.computeVisualPositions();
     
     var view = this;
-    levels.each(function(data, depth) {
-        view.renderLevel(d3.select(this), data, depth);
+    
+    var layers = this.d3root.selectAll('g.layer').data([
+        
+        // Bottom layer: paths / edges
+        function (nodes, depth) {
+            if (depth > 0) view.renderPaths(nodes);
+        },
+        
+        // Top layer: texts
+        function (nodes, depth) {
+            var last_level = depth == view.model.levels.length - 1;
+            view.renderTexts(nodes, last_level);
+        }
+    ]);
+    
+    layers.enter().append('g').attr('class', 'layer');
+    
+    layers.each(function (func) {
+        
+        var levels = d3.select(this).selectAll('g.level')
+            .data(view.model.levels);
+        
+        levels.enter()
+            .append('g')
+            .attr('class', 'level');
+        
+        levels.exit().remove();
+        
+        levels.each(function(data, depth) {
+            
+            var nodes = d3.select(this)
+                .selectAll('g')
+                .data(data, function (d) { return d.visual.id; });
+            
+            func(nodes, depth);
+            
+            nodes.exit().remove();
+        });
     });
     
     var zoom = Math.min((view.style.canvas.height*0.5) / Math.max(-this.min_y, this.max_y), 1.0);
@@ -289,38 +320,19 @@ TreeOfLifeView.prototype.computeLevelVisualPositions = function (data, depth) {
     });
 }
 
-TreeOfLifeView.prototype.renderLevel = function (d3_selector, data, depth) {
+TreeOfLifeView.prototype.renderTexts = function(nodes, last_level) {
     
-    var last_level = depth == this.model.levels.length - 1;
-    
-    var nodes = d3_selector
-        .selectAll('g')
-        .data(data, function (d) { return d.visual.id; });
+    var model = this.model;
+    var style = this.style;
     
     var new_nodes = nodes.enter()
         .append('g');
-    
-    if (depth > 0) { new_nodes.append('path'); }
     
     new_nodes.append('text')
         .text(function(d) {
             if (d.n) return d.n;
             return '...';
         });
-        
-    this.renderTexts(nodes, last_level);
-    
-    if (depth === 0) return;
-    
-    this.renderPaths(nodes);
-    
-    nodes.exit().remove();
-}
-
-TreeOfLifeView.prototype.renderTexts = function(nodes, last_level) {
-    
-    var model = this.model;
-    var style = this.style;
     
     nodes.select('text')
         .on('click', this.onClickNode)
@@ -344,6 +356,10 @@ TreeOfLifeView.prototype.renderPaths = function (nodes) {
     var model = this.model;
     var style = this.style;
     
+    nodes.enter()
+        .append('g')
+        .append('path');
+    
     nodes.select('path')
         .on('click', this.onClickNode)
         .attr('style', function(d) {
@@ -360,20 +376,24 @@ TreeOfLifeView.prototype.renderPaths = function (nodes) {
         .attr('d', function (d) {
             var w = d.visual.cx - d.parent.visual.cx;
             
-            var p = SvgPath.moveTo(d.parent.visual.cx, d.visual.parent_link.y0) +
+            // try to avoid seams
+            var x0 = Math.round(d.parent.visual.cx);
+            var x1 = Math.round(d.visual.cx)+1;
+            
+            var p = SvgPath.moveTo(x0, d.visual.parent_link.y0) +
                 SvgPath.curveTo(
-                    d.parent.visual.cx + w*0.5, d.visual.parent_link.y0,
-                    d.visual.cx - w*0.5, d.visual.y0,
-                    d.visual.cx, d.visual.y0);
+                    x0 + w*0.5, d.visual.parent_link.y0,
+                    x1 - w*0.5, d.visual.y0,
+                    x1 + 1, d.visual.y0);
             
             if (d.visual.line_only) return p;
             
             return p +
-                SvgPath.lineTo(d.visual.cx, d.visual.y1) +
+                SvgPath.lineTo(x1, d.visual.y1) +
                 SvgPath.curveTo(
-                    d.visual.cx - w*0.5, d.visual.y1,
-                    d.parent.visual.cx + w*0.5, d.visual.parent_link.y1,
-                    d.parent.visual.cx, d.visual.parent_link.y1) +
+                    x1 - w*0.5, d.visual.y1,
+                    x0 + w*0.5, d.visual.parent_link.y1,
+                    x0, d.visual.parent_link.y1) +
                 SvgPath.close;
         });
 }
