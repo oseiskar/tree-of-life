@@ -16,8 +16,8 @@ var SvgPath = {
 function Style() {    
     
     this.SCALE_LEVELS = {
-        color: ['#408040', '#8080c0'],
-        opacity: ['0.3', '0.3']
+        color: ['#c5d9c5', '#d8d8ec'],
+        opacity: ['1.0', '1.0']
     }
     
     this.N_SCALE_LEVELS = this.SCALE_LEVELS.color.length;
@@ -37,13 +37,17 @@ Style.prototype.defineStylesForPrimitives = function() {
     var scale_levels = d3.range(this.N_SCALE_LEVELS);
     var that = this;
     this.SCALE_LEVELS.solid = scale_levels.map(function (_, i) {
-        return 'fill: ' + that.SCALE_LEVELS.color[i] + '; ' +
-               'fill-opacity: ' + that.SCALE_LEVELS.opacity[i];
+        var s = 'fill: ' + that.SCALE_LEVELS.color[i];
+        var op = that.SCALE_LEVELS.opacity[i];
+        if (parseFloat(op) < 1.0) s += '; fill-opacity: ' + op;
+        return s;
     });
 
     this.SCALE_LEVELS.line = scale_levels.map(function (_, i) {
-        return 'fill: none; stroke: ' + that.SCALE_LEVELS.color[i] + '; ' +
-               'stroke-opacity: ' + that.SCALE_LEVELS.opacity[i];
+        var s = 'fill: none; stroke: ' + that.SCALE_LEVELS.color[i];
+        var op = that.SCALE_LEVELS.opacity[i];
+        if (parseFloat(op) < 1.0) s += '; stroke-opacity: ' + op;
+        return s;
     });
 
     this.SCALE_LEVELS.gradient = scale_levels.map(function (_, i) {
@@ -372,20 +376,24 @@ TreeOfLifeView.prototype.renderPaths = function (nodes) {
         .attr('d', function (d) {
             var w = d.visual.cx - d.parent.visual.cx;
             
-            var p = SvgPath.moveTo(d.parent.visual.cx, d.visual.parent_link.y0) +
+            // try to avoid seams
+            var x0 = Math.round(d.parent.visual.cx);
+            var x1 = Math.round(d.visual.cx)+1;
+            
+            var p = SvgPath.moveTo(x0, d.visual.parent_link.y0) +
                 SvgPath.curveTo(
-                    d.parent.visual.cx + w*0.5, d.visual.parent_link.y0,
-                    d.visual.cx - w*0.5, d.visual.y0,
-                    d.visual.cx, d.visual.y0);
+                    x0 + w*0.5, d.visual.parent_link.y0,
+                    x1 - w*0.5, d.visual.y0,
+                    x1 + 1, d.visual.y0);
             
             if (d.visual.line_only) return p;
             
             return p +
-                SvgPath.lineTo(d.visual.cx, d.visual.y1) +
+                SvgPath.lineTo(x1, d.visual.y1) +
                 SvgPath.curveTo(
-                    d.visual.cx - w*0.5, d.visual.y1,
-                    d.parent.visual.cx + w*0.5, d.visual.parent_link.y1,
-                    d.parent.visual.cx, d.visual.parent_link.y1) +
+                    x1 - w*0.5, d.visual.y1,
+                    x0 + w*0.5, d.visual.parent_link.y1,
+                    x0, d.visual.parent_link.y1) +
                 SvgPath.close;
         });
 }
