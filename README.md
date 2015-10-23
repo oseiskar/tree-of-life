@@ -24,9 +24,4 @@ through the tree.
 The program also constructs a prefix tree of the taxon names. This tree, which
 powers the search feature, is also split into subrees that are loaded on demand.
 
-### Copyright
-
-As far as I know (see [COPYRIGHT.md](COPYRIGHT.md)), the tree data is licenced under 
-
-    Creative Commons Attribution 3.0 Unported License.
-    Copyright March 2015, Open Tree of Life
+__See also [COPYRIGHT.md](COPYRIGHT.md)__
