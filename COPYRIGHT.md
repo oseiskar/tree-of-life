@@ -13,15 +13,15 @@ this file using the attached C++ program executed via `make jsons`.
 
 __`utf8.hpp`__
 
-Adapted from http://bjoern.hoehrmann.de/utf-8/decoder/dfa/ for details.
+Adapted from http://bjoern.hoehrmann.de/utf-8/decoder/dfa/ 
 
     (c) 2008-2009 Bjoern Hoehrmann <bjoern@hoehrmann.de>
 
-See `include/utf8.hpp` for the full licence.
+See [include/utf8.hpp](include/utf8.hpp) for the full licence.
 
 __Other material__
 
 
     (c) Otto Seiskari, 2015
 
-.
+
