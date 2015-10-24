@@ -11,16 +11,17 @@ data in http://files.opentreeoflife.org/trees/draftversion3.tre.gz (fetched
 The included JSON data have been derived from the decompressed version of
 this file using the attached C++ program executed via `make jsons`.
 
+__`loader.gif`__ from http://loading.io/
+
 __`utf8.hpp`__
 
 Adapted from http://bjoern.hoehrmann.de/utf-8/decoder/dfa/ 
 
     (c) 2008-2009 Bjoern Hoehrmann <bjoern@hoehrmann.de>
 
-See [include/utf8.hpp](include/utf8.hpp) for the full licence.
+See [the file](include/utf8.hpp) for the full licence.
 
 __Other material__
-
 
     (c) Otto Seiskari, 2015
 
