@@ -56,6 +56,8 @@ svg path {
     padding-top: 1%;
     text-align: center;
     font-size: 10pt;
+    position: absolute;
+    bottom: 0;
 }
 
 .foot a {
@@ -64,7 +66,7 @@ svg path {
 
 .title {
     display: inline-block;
-    width: 40%;
+    width: 34%;
     padding: 0;
     margin: 0;
 }
