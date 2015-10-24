@@ -13,7 +13,7 @@ var SvgPath = {
     close: 'Z'
 };
   
-function Style() {    
+function Style() {
     
     this.SCALE_LEVELS = {
         color: ['#c5d9c5', '#d8d8ec'],
@@ -88,7 +88,7 @@ function TreeOfLifeView() {
     
     var view = this;
     this.model = new TreeOfLifeModel(function () {
-        d3.select('#loader').classed('hidden', true);
+        d3.select('#page-loader').classed('hidden', true);
         d3.selectAll('.bar').classed('hidden', false);
         view.render();
     });
@@ -99,6 +99,7 @@ function TreeOfLifeView() {
         function callback() {
             model.resetTreeOfLife();
             if (node_id !== null) model.expandToNode(node_id);
+            view.tryLoaderOn();
             view.render();
         }
         
@@ -110,8 +111,7 @@ function TreeOfLifeView() {
     }
     
     this.style = new Style(this.model.RESCALE_AT);
-    this.style.defineGradients(d3.select('svg'));
-    
+    this.style.defineGradients(d3.select('#tree'));
     
     this.d3root = d3.select('#tree')
         .attr('viewBox', '0 0 '+this.style.canvas.width+' '+this.style.canvas.height)
@@ -134,11 +134,32 @@ function TreeOfLifeView() {
             view.model.toggleExpand(node, updateAgain);
             updateAgain();
         }
+        view.tryLoaderOn();
     }
 };
 
+TreeOfLifeView.prototype.refreshLoader = function (try_on, delayed) {
+    var that = this;
+    if (delayed) {
+        setTimeout(function () { that.refreshLoader(try_on, false); }, 200);
+    }
+    else if (this.model.backend.requestPending() == try_on) {
+        d3.select('.loader-container')
+            .classed('loading-tree', try_on);
+    }
+}
+
+TreeOfLifeView.prototype.tryLoaderOn = function() {
+    this.refreshLoader(true, true);
+}
+
+TreeOfLifeView.prototype.tryLoaderOff = function() {
+    this.refreshLoader(false, false);
+}
+
 TreeOfLifeView.prototype.render = function () {
     
+    this.tryLoaderOff();
     this.computeVisualPositions();
     
     var view = this;

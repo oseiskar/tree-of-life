@@ -5,9 +5,13 @@ function TreeOfLifeBackend(root_loaded_callback) {
     var subtrees = {};
     var parent_map = {};
     
+    var request_counter = 0;
+    
     function getJson(base_name, callback) {
+        request_counter += 1;
         d3.json('data/' + base_name + '.json', function (error, data) {
             if (error) return console.warn(error);
+            request_counter -= 1;
             callback(data);
         });
     }
@@ -59,6 +63,8 @@ function TreeOfLifeBackend(root_loaded_callback) {
     this.parentIdOfNode = function(node_id) {
         return parent_map[''+node_id];
     }
+    
+    this.requestPending = function () { return request_counter > 0; }
     
     var that = this;
     getJson('subtree-index', function(data) {

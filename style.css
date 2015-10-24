@@ -10,26 +10,44 @@ body {
     position: relative;
 }
 
-svg {
+#tree {
     display: block;
     top: 0;
     left: 0;
     position: absolute;
 }
 
-svg text {
+#tree text {
     cursor: pointer;
 }
 
-svg path {
+#tree path {
     cursor: pointer;
 }
 
-#loader {
+#page-loader {
     width: 100%;
     text-align: center;
     margin-top: 20%;
 }
+
+/* loader from 
+ * http://loading.io/loader/?use=eyJzaXplIjoxNSwic3BlZWQiOiIxIiwiY2JrIjoiI2ZmZmZmZiIsImMxIjoiI2M1ZDljNSIsImMyIjoiMjAiLCJjMyI6IjEwIiwidHlwZSI6InJvbGxpbmcifQ==
+ */
+#loader {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.loader-container {
+    width: 23%;
+    text-align: right;
+    display: inline-block;
+    visibility: hidden;
+}
+
+.loading-search { visibility: visible; }
+.loading-tree { visibility: visible; }
 
 .bar {
     line-height: 50px;

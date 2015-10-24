@@ -33,6 +33,7 @@ function SearchModel(search_ready_callback) {
     var root = {};
     
     var latest_query = '';
+    var request_counter = 0;
     
     var fetch = function (id, callback) {
         if (subtrees[id]) {
@@ -86,12 +87,16 @@ function SearchModel(search_ready_callback) {
         if (latest_query === query) return;
         latest_query = query;
         
+        request_counter += 1;
         doSearch(root, latest_query, function (result) {
+            request_counter -= 1;
             if (latest_query === query) {
                 callback(query, result);
             }
         });
     }
+    
+    this.requestPending = function() { return request_counter > 0; }
 }
 
 function SearchView(result_callback) {
@@ -115,8 +120,20 @@ function SearchView(result_callback) {
         if (str == '') return '';
         return str.charAt(0).toUpperCase() + str.slice(1);
     }
+    
+    function checkLoader() {
+        d3.select('.loader-container')
+            .classed('loading-search', model.requestPending());
+    }
+    
+    function searchFor(query) {
+        model.searchFor(query, displayResult);
+        setTimeout(checkLoader, 200);
+    }
 
     function displayResult(query, result) {
+        
+        checkLoader();
         
         var keys = [];
         go_button_action = null;
@@ -125,7 +142,7 @@ function SearchView(result_callback) {
             var selected = result.c[l];
             if (selected) {
                 search_area.property('value', query+l);
-                model.searchFor(query+l, displayResult);
+                searchFor(query+l);
                 if (selected.v) openResult(selected.v);
             }
         }
@@ -200,7 +217,7 @@ function SearchView(result_callback) {
             go_button.on('click')();
         }
         else {
-            model.searchFor(capitalize(this.value), displayResult);
+            searchFor(capitalize(this.value));
         }
     }).on('blur', function () {
         setTimeout(function() {
