@@ -5,8 +5,8 @@ SOURCE_FILES = include/tree.hpp include/trie.hpp include/json.hpp include/utf8.h
 
 .PHONY: clean jsons test
 
-jsons: clean bin/main data/draftversion3.tre
-	bin/main < data/draftversion3.tre
+jsons: clean bin/main data/source.tre
+	bin/main < data/source.tre
 	
 test: bin/tests
 	bin/tests

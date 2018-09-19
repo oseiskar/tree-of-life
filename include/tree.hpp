@@ -172,15 +172,18 @@ private:
         // drop leading whitespace
         while(name_.size() > 0 && name_[0] == ' ') name_ = name_.substr(1);
         name = name_;
-        
-        if (name.size() == 0) return;
-        
+
         int id_begin = name.find_last_of(' ');
+
+        // detect id-only nodes
+        if (id_begin < 0) name.clear();
+        if (name.size() == 0) return;
+
         name = name_.substr(0,id_begin);
         ext_id = name_.substr(id_begin+1);
-        
+
         if (ext_id.substr(0,3) != std::string("ott"))
-            throw error("expected ott+number");
+            throw error("expected ott+number, not "+ext_id);
         
         if (name.size() == 0) throw error("empty name");
         if (ext_id.size() == 0) throw error("empty ext_id");
